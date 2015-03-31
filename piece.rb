@@ -20,10 +20,13 @@ class Piece
     pos.last
   end
 
+  def opponent?(other)
+    color != other.color
+  end
+
+  require 'byebug'
   def valid_moves
-    # filter - moves.select{blah blah blah}
-    # occupied by opponent
-    # doesn't cause check
+    moves.select{ |pos| @board[pos].nil? || opponent?(@board[pos]) }
   end
 
   def in_bounds?(pos)
@@ -31,5 +34,8 @@ class Piece
     x.between?(0, 7) && y.between?(0, 7)
   end
 
+  def inspect
+    pos
+  end
 
 end
