@@ -17,4 +17,8 @@ class Knight < Stepping_Piece
     DX_DY
   end
 
+  def render
+    color == :white ? "\u2658" : "\u265E"
+  end
+
 end

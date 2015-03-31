@@ -13,4 +13,8 @@ class Rook < Sliding_Piece
     DIRECTIONS
   end
 
+  def render
+    color == :white ? "\u2656" : "\u265C"
+  end
+
 end

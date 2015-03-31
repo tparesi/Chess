@@ -13,4 +13,8 @@ class Bishop < Sliding_Piece
     DIRECTIONS
   end
 
+  def render
+    color == :white ? "\u2657" : "\u265D"
+  end
+
 end

@@ -17,4 +17,8 @@ class King < Stepping_Piece
     DX_DY
   end
 
+  def render
+    color == :white ? "\u2654" : "\u265A"
+  end
+
 end

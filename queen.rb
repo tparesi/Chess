@@ -17,4 +17,8 @@ class Queen < Sliding_Piece
     DIRECTIONS
   end
 
+  def render
+    color == :white ? "\u2655" : "\u265B"
+  end
+
 end
