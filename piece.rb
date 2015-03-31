@@ -24,8 +24,21 @@ class Piece
     color != other.color
   end
 
-  require 'byebug'
+  ## NOT COMPLETED
   def valid_moves
+    possible_moves
+  end
+
+  def move_into_check?(pos)
+    # dup the board
+    duped = @board.deep_dup
+    # make the move on duped board
+    # return duped_board.in_check?(color)
+  end
+
+  require 'byebug'
+  def possible_moves
+    byebug
     moves.select{ |pos| @board[pos].nil? || opponent?(@board[pos]) }
   end
 
@@ -35,7 +48,11 @@ class Piece
   end
 
   def inspect
-    pos
+    self.class.to_s
+  end
+
+  def deep_dup(board)
+    self.class.new(pos, color, board)
   end
 
 end

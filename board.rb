@@ -20,9 +20,9 @@ class Board
     "H" => 7
   }
 
-  def initialize
-    @grid = Array.new(8) { Array.new(8) }
-    place_pieces
+  def initialize(starting_grid, place_new_pieces)
+    @grid = starting_grid
+    place_pieces if place_new_pieces
   end
 
   def move
@@ -45,7 +45,7 @@ class Board
     king = pieces(color).select {|piece| piece.is_a?(King)}.first
 
     pieces(opponent(color)).any? do |opponent|
-      opponent.valid_moves.include?(king.pos)
+      opponent.possible_moves.include?(king.pos)
     end
   end
 
@@ -148,6 +148,21 @@ class Board
     @grid[7][4] = King.new([7, 4], :white, self)
   end
 
+  def deep_dup
+    new_grid = Array.new(8){Array.new(8)}
 
+    @grid.each_with_index do |row, i|
+      row.each_with_index do |piece, j|
+        if @grid[i][j]
+          new_grid[i][j] = @grid[i][j].deep_dup(new_grid)
+        else
+          new_grid[i][j] = nil
+        end
+      end
+    end
+
+    ### WHY IS THIS SO JANKY - extra nesting of arrays - plz help
+    Board.new(new_grid.first, false)
+  end
 
 end
