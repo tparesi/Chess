@@ -7,9 +7,12 @@ class Sliding_Piece < Piece
     move_dirs.each do |dx, dy|
 
       mult = 1
-      while in_bounds?([x + mult * dx, y + mult * dy])
-        positions << [x + mult*dx, y + mult*dy]
+      new_pos = [x + mult * dx, y + mult * dy]
+
+      while in_bounds?(new_pos) && @board[new_pos].nil?
+        positions << new_pos
         mult += 1
+        new_pos = [x + mult * dx, y + mult * dy]
       end
     end
 
