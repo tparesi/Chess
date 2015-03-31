@@ -9,8 +9,26 @@ class Piece
   end
 
   def moves
-    # returns array of valid moves
-    # filters only valid moves(within bounds and opponent)
+    raise NotImplementedError
+  end
+
+  def x
+    pos.first
+  end
+
+  def y
+    pos.last
+  end
+
+  def valid_moves
+    # filter - moves.select{blah blah blah}
+    # occupied by opponent
+    # doesn't cause check
+  end
+
+  def in_bounds?(pos)
+    x, y = pos
+    x.between?(0, 7) && y.between?(0, 7)
   end
 
 
