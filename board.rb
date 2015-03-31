@@ -25,13 +25,40 @@ class Board
     place_pieces
   end
 
-  def play
-    loop do
-      move
+  def move
+    begin
+      start_pos, end_pos = get_move
+      piece = self[start_pos]
+
+      handle_invalid_inputs(piece, end_pos)
+    rescue IOError => e
+      puts e.message
+      retry
+    end
+
+    piece.pos = end_pos
+    self[end_pos] = piece
+    self[start_pos] = nil
+  end
+
+  def in_check?(color)
+    king = pieces(color).select {|piece| piece.is_a?(King)}.first
+
+    pieces(opponent(color)).any? do |opponent|
+      opponent.valid_moves.include?(king.pos)
     end
   end
 
-  def in_check(color)
+  def opponent(color)
+    color == :white ? :black : :white
+  end
+
+  def all_pieces
+    @grid.flatten.reject { |piece| piece.nil? }
+  end
+
+  def pieces(color)
+    all_pieces.select { |piece| piece.color == color }
   end
 
   def [](pos)
@@ -60,25 +87,8 @@ class Board
     unless piece.valid_moves.include?(end_pos)
       raise IOError.new "You can't move there."
     end
-  end
 
-  # refactor into a few methods
-  def move
-    begin
-      start_pos, end_pos = get_move
-      piece = self[start_pos]
-
-      handle_invalid_inputs(piece, end_pos)
-    rescue IOError => e
-      puts e.message
-      retry
-    end
-
-    piece.pos = end_pos
-    self[end_pos] = piece
-    self[start_pos] = nil
-
-    display
+    # Chose piece that is opponent's piece
   end
 
   def display
@@ -94,7 +104,6 @@ class Board
       (characters.shift + " ") + row.map do |piece|
         piece.nil? ? "_" : piece.render
       end.join(' ')
-      #character = character.next
     end.join("\n")
   end
 
