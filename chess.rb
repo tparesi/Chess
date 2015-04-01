@@ -1,5 +1,6 @@
 require_relative 'board.rb'
 require_relative 'human_player.rb'
+require 'yaml'
 
 class Game
   attr_accessor :board
@@ -24,16 +25,27 @@ class Game
   def play
     player = @player1
 
+    puts "Your game will be saved after each turn."
+    puts "To load an in-progress game, run:"
+    puts "ruby chess.rb chess-#{@player1.name}-v-#{@player2.name}.yml"
+
     until ended_in_checkmate?|| ended_in_stalemate?
       puts "\n#{player.name.capitalize}'s turn."
       @board.display
       start_pos, end_pos = handle_input(player.color)
       @board.move(player.color, start_pos, end_pos)
       player == @player1 ? player = @player2 : player = @player1
+      save
     end
 
     @board.display
     display_winner(player)
+  end
+
+private
+
+  def save
+    File.write("chess-#{@player1.name}-v-#{@player2.name}.yml", YAML.dump(self))
   end
 
   def display_winner(player)
@@ -52,8 +64,6 @@ class Game
     @board.checkmate?(:white) || @board.checkmate?(:black)
   end
 
-private
-
   def handle_input(color)
     begin
       start_pos, end_pos = get_move
@@ -70,6 +80,7 @@ private
 
   def get_move
     puts "Where do you want to move from?"
+
     coords = gets.chomp.split("")
     start_pos = [coords.last.to_i - 1, COL[coords.first.upcase]]
 
@@ -95,13 +106,18 @@ end
 
 
 if __FILE__ == $PROGRAM_NAME
-  puts "Who is playing white?"
-  name = gets.chomp
-  player1 = HumanPlayer.new(name, :white)
 
-  puts "Who is playing black?"
-  name = gets.chomp
-  player2 = HumanPlayer.new(name, :black)
+  unless ARGV.empty?
+    YAML.load_file(ARGV.shift).play
+  else
+    puts "Who is playing white?"
+    name = gets.chomp
+    player1 = HumanPlayer.new(name, :white)
 
-  Game.new(player1, player2)
+    puts "Who is playing black?"
+    name = gets.chomp
+    player2 = HumanPlayer.new(name, :black)
+
+    Game.new(player1, player2)
+  end
 end
