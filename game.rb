@@ -4,10 +4,20 @@ require_relative 'human_player.rb'
 class Game
   attr_accessor :board
 
+  COL = {
+    "A" => 0,
+    "B" => 1,
+    "C" => 2,
+    "D" => 3,
+    "E" => 4,
+    "F" => 5,
+    "G" => 6,
+    "H" => 7
+  }
+
   def initialize(player1, player2)
     @player1, @player2 = player1, player2
-    place_pieces = true
-    @board = Board.new(Array.new(8){Array.new(8)}, place_pieces)
+    @board = Board.new
     play
   end
 
@@ -17,7 +27,8 @@ class Game
     until ended_in_checkmate?|| ended_in_stalemate?
       puts "\n#{player.name.capitalize}'s turn."
       @board.display
-      @board.move(player.color)
+      start_pos, end_pos = handle_input(player.color)
+      @board.move(player.color, start_pos, end_pos)
       player == @player1 ? player = @player2 : player = @player1
     end
 
@@ -41,7 +52,47 @@ class Game
     @board.checkmate?(:white) || @board.checkmate?(:black)
   end
 
+private
+
+  def handle_input(color)
+    begin
+      start_pos, end_pos = get_move
+      piece = @board[start_pos]
+
+      report_illegal_move(piece, end_pos, color)
+    rescue IOError => e
+      puts e.message
+      retry
+    end
+
+    [start_pos, end_pos]
+  end
+
+  def get_move
+    puts "Where do you want to move from?"
+    coords = gets.chomp.split("")
+    start_pos = [coords.last.to_i - 1, COL[coords.first.upcase]]
+
+    puts "Where do you want to move to?"
+    coords = gets.chomp.split("")
+    end_pos = [coords.last.to_i - 1, COL[coords.first.upcase]]
+
+    [start_pos, end_pos]
+  end
+
+  def report_illegal_move(piece, end_pos, player_color)
+    raise IOError.new "There's no piece there!\n" unless piece
+
+    unless piece.valid_moves.include?(end_pos)
+      raise IOError.new "That's not a valid move for the piece you chose.\n"
+    end
+
+    unless piece.color == player_color
+      raise IOError.new "That's your opponent's piece.\n"
+    end
+  end
 end
+
 
 if __FILE__ == $PROGRAM_NAME
   puts "Who is playing white?"
