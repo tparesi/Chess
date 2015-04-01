@@ -28,9 +28,10 @@ class Board
     place_pieces if place_new_pieces
   end
 
-  def move(start_pos = nil, end_pos = nil)
+  def move(color, start_pos = nil, end_pos = nil)
+
     if start_pos.nil? && end_pos.nil?
-      piece, start_pos, end_pos = human_move
+      piece, start_pos, end_pos = human_move(color)
     else
       piece = self[start_pos]
     end
@@ -42,12 +43,12 @@ class Board
     self
   end
 
-  def human_move
+  def human_move(color)
     begin
       start_pos, end_pos = get_move
       piece = self[start_pos]
 
-      handle_invalid_inputs(piece, end_pos)
+      handle_invalid_inputs(piece, end_pos, color)
     rescue IOError => e
       puts e.message
       retry
@@ -69,6 +70,10 @@ class Board
       return pieces(color).none? { |piece| piece.valid_moves.count > 0 }
     end
     false
+  end
+
+  def stalemate?(color)
+    !in_check?(color) && pieces(color).none? { |piece| piece.valid_moves.count > 0 }
   end
 
   def opponent(color)
@@ -103,14 +108,16 @@ class Board
     [start_pos, end_pos]
   end
 
-  def handle_invalid_inputs(piece, end_pos)
-    raise IOError.new "That's an empty space!" unless piece
+  def handle_invalid_inputs(piece, end_pos, player_color)
+    raise IOError.new "There's no piece there!\n" unless piece
 
     unless piece.valid_moves.include?(end_pos)
-      raise IOError.new "You can't move there."
+      raise IOError.new "That's not a valid move for the piece you chose.\n"
     end
 
-    # Chose piece that is opponent's piece
+    unless piece.color == player_color
+      raise IOError.new "That's your opponent's piece.\n"
+    end
   end
 
   def display

@@ -11,12 +11,31 @@ class Game
 
   def play
 
-    until @board.checkmate?(:white) || @board.checkmate?(:black)
+    player = :white
+    until ended_in_checkmate?|| ended_in_stalemate?
+      puts "\n#{player.to_s.capitalize}'s turn."
       @board.display
-      @board.move
+      @board.move(player)
+      player == :white ? player = :black : player = :white
     end
 
-    puts "Checkmate! :("
+    display_winner(player)
+  end
+
+  def display_winner(player)
+    if ended_in_checkmate?
+      puts "\nCheckmate! #{player.to_s.capitalize} loses."
+    elsif ended_in_stalemate?
+      puts "\nStalemate! Nobody wins."
+    end
+  end
+
+  def ended_in_stalemate?
+    @board.stalemate?(:white) || @board.stalemate?(:black)
+  end
+
+  def ended_in_checkmate?
+    @board.checkmate?(:white) || @board.checkmate?(:black)
   end
 
 end

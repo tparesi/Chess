@@ -28,7 +28,7 @@ class Piece
 
   def move_into_check?(end_pos)
     duped = @board.deep_dup
-    duped.move(pos, end_pos).in_check?(color)
+    duped.move(color, pos, end_pos).in_check?(color)
   end
 
   def opponent?(other)
