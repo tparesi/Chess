@@ -6,16 +6,17 @@ class Game
   def initialize
     place_pieces = true
     @board = Board.new(Array.new(8){Array.new(8)}, place_pieces)
+    play
   end
 
   def play
 
-    # check if game has been won
-    loop do
+    until @board.checkmate?(:white) || @board.checkmate?(:black)
       @board.display
       @board.move
     end
 
+    puts "Checkmate! :("
   end
 
 end

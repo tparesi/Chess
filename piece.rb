@@ -35,7 +35,6 @@ class Piece
     self.color != other.color
   end
 
-
   def possible_moves
     moves.select{  |pos| @board[pos].nil? || opponent?(@board[pos]) }
   end

@@ -64,6 +64,13 @@ class Board
     end
   end
 
+  def checkmate?(color)
+    if in_check?(color)
+      return pieces(color).none? { |piece| piece.valid_moves.count > 0 }
+    end
+    false
+  end
+
   def opponent(color)
     color == :white ? :black : :white
   end
