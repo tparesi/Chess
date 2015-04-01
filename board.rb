@@ -38,6 +38,7 @@ class Board
     piece.pos = end_pos
     self[end_pos] = piece
     self[start_pos] = nil
+    piece.first_move = false if piece.is_a?(Pawn)
     self
   end
 
@@ -178,8 +179,14 @@ class Board
 
     @grid.each_with_index do |row, i|
       row.each_with_index do |piece, j|
-        if @grid[i][j]
-          grid[i][j] = piece.class.new([i,j], piece.color, new_board) # piece.dup
+        piece = @grid[i][j]
+
+        if piece
+          if piece.is_a?(Pawn)
+            grid[i][j] = Pawn.new([i,j], piece.color, new_board, piece.first_move)
+          else
+            grid[i][j] = piece.class.new([i,j], piece.color, new_board)
+          end
         else
           grid[i][j] = nil
         end
