@@ -20,26 +20,24 @@ class Piece
     pos.last
   end
 
-  def opponent?(other)
-    color != other.color
-  end
-
-  ## NOT COMPLETED
-  def valid_moves
-    possible_moves
-  end
-
-  def move_into_check?(pos)
-    # dup the board
-    duped = @board.deep_dup
-    # make the move on duped board
-    # return duped_board.in_check?(color)
-  end
-
   require 'byebug'
+
+  def valid_moves
+    possible_moves.reject{ |end_pos| move_into_check?(end_pos) }
+  end
+
+  def move_into_check?(end_pos)
+    duped = @board.deep_dup
+    duped.move(pos, end_pos).in_check?(color)
+  end
+
+  def opponent?(other)
+    self.color != other.color
+  end
+
+
   def possible_moves
-    byebug
-    moves.select{ |pos| @board[pos].nil? || opponent?(@board[pos]) }
+    moves.select{  |pos| @board[pos].nil? || opponent?(@board[pos]) }
   end
 
   def in_bounds?(pos)

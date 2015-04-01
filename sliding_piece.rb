@@ -9,7 +9,7 @@ class Sliding_Piece < Piece
       mult = 1
       new_pos = [x + mult * dx, y + mult * dy]
 
-      while in_bounds?(new_pos) && @board[new_pos].nil?
+      while in_bounds?(new_pos)
         positions << new_pos
         mult += 1
         new_pos = [x + mult * dx, y + mult * dy]

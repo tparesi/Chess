@@ -12,12 +12,10 @@ class Game
 
     # check if game has been won
     loop do
-    #until @board.in_check?(:black) || @board.in_check?(:white)
       @board.display
       @board.move
     end
 
-    puts "in check"
   end
 
 end

@@ -6,6 +6,9 @@ require_relative 'knight.rb'
 require_relative 'king.rb'
 require_relative 'bishop.rb'
 require_relative 'rook.rb'
+require 'colorize'
+
+require 'byebug'
 
 class Board
 
@@ -25,7 +28,20 @@ class Board
     place_pieces if place_new_pieces
   end
 
-  def move
+  def move(start_pos = nil, end_pos = nil)
+    if start_pos.nil? && end_pos.nil?
+      piece, start_pos, end_pos = human_move
+    else
+      piece = self[start_pos]
+    end
+
+    piece.pos = end_pos
+    self[end_pos] = piece
+    self[start_pos] = nil
+    self
+  end
+
+  def human_move
     begin
       start_pos, end_pos = get_move
       piece = self[start_pos]
@@ -36,9 +52,7 @@ class Board
       retry
     end
 
-    piece.pos = end_pos
-    self[end_pos] = piece
-    self[start_pos] = nil
+    [piece, start_pos, end_pos]
   end
 
   def in_check?(color)
@@ -97,18 +111,27 @@ class Board
 
   def render
     characters = "ABCDEFGH".chars
+    background = :gray
 
-    "  " + (0..7).to_a.join(" ") + "\n" +
+    "   " + (0..7).to_a.join("  ") + "\n" +
     @grid.map do |row|
+      background == :white ? background = :gray : background = :white
 
       (characters.shift + " ") + row.map do |piece|
-        piece.nil? ? "_" : piece.render
-      end.join(' ')
+        background == :white ? background = :gray : background = :white
+
+        if piece.nil?
+          ("   ").colorize(:background => background)
+        else
+          (' ' + piece.render + ' ').colorize(:background => background)
+        end
+
+      end.join("")
     end.join("\n")
   end
 
   def inspect
-    ""
+    display
   end
 
   def place_pieces
@@ -149,20 +172,21 @@ class Board
   end
 
   def deep_dup
-    new_grid = Array.new(8){Array.new(8)}
+    grid = Array.new(8){Array.new(8)}
+    new_board = Board.new(grid, false)
+
 
     @grid.each_with_index do |row, i|
       row.each_with_index do |piece, j|
         if @grid[i][j]
-          new_grid[i][j] = @grid[i][j].deep_dup(new_grid)
+          grid[i][j] = piece.class.new([i,j], piece.color, new_board) # piece.dup
         else
-          new_grid[i][j] = nil
+          grid[i][j] = nil
         end
       end
     end
 
-    ### WHY IS THIS SO JANKY - extra nesting of arrays - plz help
-    Board.new(new_grid.first, false)
+    new_board
   end
 
 end
