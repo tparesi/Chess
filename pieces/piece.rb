@@ -31,10 +31,6 @@ class Piece
       self.color != other.color
     end
 
-    def in_bounds?(pos)
-      x, y = pos
-      x.between?(0, 7) && y.between?(0, 7)
-    end
 
     def x
       pos.first

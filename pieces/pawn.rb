@@ -10,13 +10,14 @@ class Pawn < Piece
 
   def moves
     possible_moves = []
-    possible_moves << base_moves unless @board[base_moves]
+    possible_moves + base_moves unless @board[base_moves]
     possible_moves << first_moves if first_move && !@board[first_moves]
     possible_moves + attack_moves
   end
 
   def base_moves
-    [x + dy, y]
+    return [x + dy, y] if @board.in_bounds?([x + dy, y])
+    []
   end
 
   def first_moves
@@ -28,8 +29,8 @@ class Pawn < Piece
     diag2 = [x + dy, y + 1]
     attacks = []
 
-    attacks << diag1 if (@board[diag1] && opponent?(@board[diag1]))
-    attacks << diag2 if (@board[diag2] && opponent?(@board[diag2]))
+    attacks << diag1 if (@board.in_bounds?(diag1) && @board[diag1] && opponent?(@board[diag1]))
+    attacks << diag2 if (@board.in_bounds?(diag2) && @board[diag2] && opponent?(@board[diag2]))
 
     attacks
   end

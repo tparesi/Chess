@@ -1,13 +1,16 @@
 Dir["./pieces/*.rb"].each {|file| require file }
 require 'colorize'
+require 'byebug'
 
 class Board
+  attr_accessor :moves_since_pawn
 
   PIECES = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
   def initialize(place_new_pieces = true)
     @grid = Array.new(8){Array.new(8)}
     place_pieces if place_new_pieces
+    @moves_since_pawn = 0
   end
 
   def move(color, start_pos, end_pos)
@@ -29,12 +32,14 @@ class Board
   def in_check?(color)
     king = pieces(color).find { |piece| piece.is_a?(King) }
 
+    byebug if king.nil?
     pieces(opponent(color)).any? do |opponent|
       opponent.reachable_squares.include?(king.pos)
     end
   end
 
   def [](pos)
+    raise if !in_bounds?(pos)
     @grid[pos.first][pos.last]
   end
 
@@ -56,9 +61,19 @@ class Board
     new_board
   end
 
+  def pieces(color)
+    all_pieces.select { |piece| piece.color == color }
+  end
+
+  def in_bounds?(pos)
+    x, y = pos
+    x.between?(0, 7) && y.between?(0, 7)
+  end
+
   private
 
     def update_board_state(piece, start_pos, end_pos)
+      piece.is_a?(Pawn) ? @moves_since_pawn = 0 : @moves_since_pawn += 1
       piece.pos = end_pos
       self[end_pos] = piece
       self[start_pos] = nil
@@ -79,10 +94,6 @@ class Board
 
     def all_pieces
       @grid.flatten.compact
-    end
-
-    def pieces(color)
-      all_pieces.select { |piece| piece.color == color }
     end
 
     def populate_row(row, color)

@@ -4,7 +4,7 @@ class Stepping_Piece < Piece
 
   def moves
     move_dirs.map { |dx, dy| [x + dx, y + dy] }
-             .reject { |pos| not(in_bounds?(pos)) }
+             .reject { |pos| not(@board.in_bounds?(pos)) }
   end
 
 

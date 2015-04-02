@@ -1,9 +1,6 @@
-class HumanPlayer
-  attr_reader :name, :color
+require_relative 'player.rb'
 
-  def initialize(name, color)
-    @name = name
-    @color = color
-  end
+class HumanPlayer < Player
+
 
 end
