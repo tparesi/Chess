@@ -16,6 +16,7 @@ import { aiMove } from "../chess/ai.js";
 import { PIECE_VALUES } from "../chess/ai.js";
 import { generateTips } from "../chess/tips.js";
 import { useAuth } from "../hooks/useAuth.js";
+import { useProfile } from "../hooks/useProfile.js";
 import { recordAiMatch } from "../lib/games.js";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
@@ -29,7 +30,10 @@ export function AIGame() {
   const { difficulty = "medium" } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { profile } = useProfile(user?.id);
   const theme = getTheme(DEFAULT_THEME_ID);
+  const playerName = profile?.display_name ?? "You";
+  const aiName = `AI (${difficulty})`;
 
   const [board, setBoard] = useState(() => cloneBoard(INIT));
   const [turn, setTurn] = useState("white");
@@ -445,6 +449,8 @@ export function AIGame() {
       {overlay && (
         <CheckmateOverlay
           winner={overlay.winner}
+          winnerName={overlay.winner === "white" ? playerName : aiName}
+          loserName={overlay.winner === "white" ? aiName : playerName}
           theme={theme}
           tips={overlay.tips}
           onReplay={reset}

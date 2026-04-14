@@ -391,6 +391,16 @@ export function GameRoom() {
       {overlay && (
         <CheckmateOverlay
           winner={overlay.winner}
+          winnerName={
+            overlay.winner === "white"
+              ? (game.white?.display_name ?? "White")
+              : (game.black?.display_name ?? "Black")
+          }
+          loserName={
+            overlay.winner === "white"
+              ? (game.black?.display_name ?? "Black")
+              : (game.white?.display_name ?? "White")
+          }
           theme={theme}
           tips={overlay.tips}
           onReplay={null}

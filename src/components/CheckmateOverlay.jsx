@@ -1,6 +1,15 @@
 import { btnStyle, primaryBtnStyle } from "./ui.js";
 
-export function CheckmateOverlay({ winner, theme, tips, eloDelta, onReplay, onMenu }) {
+export function CheckmateOverlay({
+  winner,
+  winnerName,
+  loserName,
+  theme,
+  tips,
+  eloDelta,
+  onReplay,
+  onMenu,
+}) {
   return (
     <div
       style={{
@@ -51,18 +60,20 @@ export function CheckmateOverlay({ winner, theme, tips, eloDelta, onReplay, onMe
             animation: "fadeSlideUp .6s ease-out .3s both",
           }}
         >
-          {theme.sideNames[winner]} Wins!
+          {winnerName ? `${winnerName} wins!` : `${theme.sideNames[winner]} wins!`}
         </h2>
-        <p
-          style={{
-            color: "#a8a29e",
-            fontSize: 13,
-            margin: "0 0 16px",
-            animation: "fadeSlideUp .6s ease-out .5s both",
-          }}
-        >
-          {theme.winText[winner]}
-        </p>
+        {loserName && (
+          <p
+            style={{
+              color: "#a8a29e",
+              fontSize: 13,
+              margin: "0 0 16px",
+              animation: "fadeSlideUp .6s ease-out .5s both",
+            }}
+          >
+            {winnerName ?? "Light"} defeats {loserName}
+          </p>
+        )}
 
         {eloDelta != null && (
           <p
@@ -142,21 +153,23 @@ export function CheckmateOverlay({ winner, theme, tips, eloDelta, onReplay, onMe
                 <p style={{ fontSize: 11, color: "#d4d4d8", margin: "0 0 6px", lineHeight: 1.5 }}>
                   {t.tip}
                 </p>
-                <a
-                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(t.video)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontSize: 10,
-                    color: "#60a5fa",
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  Watch tutorial →
-                </a>
+                {t.url && (
+                  <a
+                    href={t.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: 10,
+                      color: "#60a5fa",
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {t.urlLabel ?? "Learn more"} →
+                  </a>
+                )}
               </div>
             ))}
           </div>
