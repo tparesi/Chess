@@ -119,13 +119,15 @@ export function GameBoard({
           {piece && (
             <span
               style={{
-                fontSize: `calc(${SQ} * 0.62)`,
-                lineHeight: 1,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
                 pointerEvents: "none",
                 zIndex: isValidTarget ? 2 : 1,
+                lineHeight: 1,
               }}
             >
-              {theme.pieces[piece]}
+              {theme.renderPiece(piece, { size: `calc(${SQ} * 0.78)` })}
             </span>
           )}
         </div>
@@ -155,7 +157,8 @@ export function GameBoard({
       </div>
       {captureAnim && (
         <CaptureAnim
-          piece={captureAnim.piece}
+          pieceKey={captureAnim.pieceKey}
+          theme={theme}
           row={captureAnim.row}
           col={captureAnim.col}
           onDone={onCaptureAnimDone}

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 
 // An ambulance zooms in, grabs the captured piece, then zooms off the board
 // with the piece in tow. Plays when a capture happens — a signature kid feature.
-export function CaptureAnim({ piece, row, col, onDone }) {
+// Takes a piece key (e.g. "P", "k") and the theme; renders through theme.renderPiece.
+export function CaptureAnim({ pieceKey, theme, row, col, onDone }) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
@@ -67,11 +68,11 @@ export function CaptureAnim({ piece, row, col, onDone }) {
             style={{
               position: "absolute",
               top: "-35%",
-              fontSize: "clamp(13px,3.2vw,22px)",
+              display: "inline-flex",
               animation: "animalBounce .35s ease-in-out infinite alternate",
             }}
           >
-            {piece}
+            {theme.renderPiece(pieceKey, { size: "clamp(13px,3.2vw,22px)" })}
           </span>
         )}
       </div>
@@ -91,11 +92,11 @@ export function CaptureAnim({ piece, row, col, onDone }) {
         >
           <span
             style={{
-              fontSize: "clamp(18px,4.5vw,32px)",
+              display: "inline-flex",
               animation: phase === 1 ? "animalWobble .2s infinite alternate" : "none",
             }}
           >
-            {piece}
+            {theme.renderPiece(pieceKey, { size: "clamp(18px,4.5vw,32px)" })}
           </span>
         </div>
       )}

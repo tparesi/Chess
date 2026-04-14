@@ -1,5 +1,5 @@
-import { animalKingdom } from "./animalKingdom.js";
-import { classic } from "./classic.js";
+import { animalKingdom } from "./animalKingdom.jsx";
+import { classic } from "./classic.jsx";
 
 export const THEMES = {
   [animalKingdom.id]: animalKingdom,

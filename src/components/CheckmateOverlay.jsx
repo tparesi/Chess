@@ -27,11 +27,11 @@ export function CheckmateOverlay({ winner, theme, tips, eloDelta, onReplay, onMe
         <div
           style={{
             animation: "crownDrop .8s cubic-bezier(.17,.89,.32,1.28) forwards",
-            fontSize: 60,
+            display: "inline-flex",
             marginBottom: 8,
           }}
         >
-          {theme.sideEmojis[winner]}
+          {theme.renderPiece(winner === "white" ? "K" : "k", { size: "72px" })}
         </div>
         <div
           style={{

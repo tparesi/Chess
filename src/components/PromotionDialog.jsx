@@ -30,7 +30,6 @@ export function PromotionDialog({ theme, turn, onPick }) {
                 key={p}
                 onClick={() => onPick(p)}
                 style={{
-                  fontSize: 36,
                   background: "#3a3025",
                   border: "1px solid #5c4a2e",
                   borderRadius: 8,
@@ -42,7 +41,7 @@ export function PromotionDialog({ theme, turn, onPick }) {
                   alignItems: "center",
                 }}
               >
-                {theme.pieces[key]}
+                {theme.renderPiece(key, { size: "40px" })}
                 <span style={{ fontSize: 9, color: "#a8a29e", display: "block", marginTop: 4 }}>
                   {theme.labels[p]}
                 </span>

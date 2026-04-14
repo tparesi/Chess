@@ -83,7 +83,7 @@ export function AIGame() {
 
         let animInit = null;
         if (captured) {
-          animInit = { piece: theme.pieces[captured], row: tr, col: tc };
+          animInit = { pieceKey: captured, row: tr, col: tc };
           setCaptured((prev) => ({
             ...prev,
             [color]: [...prev[color], captured],
@@ -91,7 +91,7 @@ export function AIGame() {
         }
         if (isEP) {
           const capRow = color === "white" ? tr + 1 : tr - 1;
-          animInit = { piece: theme.pieces[nb[capRow][tc]], row: capRow, col: tc };
+          animInit = { pieceKey: nb[capRow][tc], row: capRow, col: tc };
           setCaptured((prev) => ({
             ...prev,
             [color]: [...prev[color], nb[capRow][tc]],
@@ -314,10 +314,12 @@ export function AIGame() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 1, minHeight: 22, alignItems: "center", width: `calc(${SQ} * 8)`, paddingLeft: 2 }}>
+          <div style={{ display: "flex", gap: 2, minHeight: 22, alignItems: "center", width: `calc(${SQ} * 8)`, paddingLeft: 2 }}>
             <span style={{ fontSize: 13, marginRight: 4 }}>{theme.sideClimates.black}</span>
             {sortCapturedByValue(captured.black).map((p, i) => (
-              <span key={i} style={{ fontSize: 16, opacity: 0.65 }}>{theme.pieces[p]}</span>
+              <span key={i} style={{ opacity: 0.85, display: "inline-flex" }}>
+                {theme.renderPiece(p, { size: "18px" })}
+              </span>
             ))}
           </div>
 
@@ -335,10 +337,12 @@ export function AIGame() {
             disabled={turn === "black" || aiThinking}
           />
 
-          <div style={{ display: "flex", gap: 1, minHeight: 22, alignItems: "center", width: `calc(${SQ} * 8)`, paddingLeft: 2 }}>
+          <div style={{ display: "flex", gap: 2, minHeight: 22, alignItems: "center", width: `calc(${SQ} * 8)`, paddingLeft: 2 }}>
             <span style={{ fontSize: 13, marginRight: 4 }}>{theme.sideClimates.white}</span>
             {sortCapturedByValue(captured.white).map((p, i) => (
-              <span key={i} style={{ fontSize: 16, opacity: 0.65 }}>{theme.pieces[p]}</span>
+              <span key={i} style={{ opacity: 0.85, display: "inline-flex" }}>
+                {theme.renderPiece(p, { size: "18px" })}
+              </span>
             ))}
           </div>
 
@@ -422,10 +426,12 @@ export function AIGame() {
             <span style={{ fontSize: 10, color: "#78716c", textTransform: "uppercase", letterSpacing: ".08em", display: "block", marginBottom: 4 }}>
               Pieces
             </span>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 8px" }}>
               {["K", "Q", "R", "B", "N", "P"].map((p) => (
                 <div key={p} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 14 }}>{theme.pieces[p]}</span>
+                  <span style={{ display: "inline-flex" }}>
+                    {theme.renderPiece(p, { size: "18px" })}
+                  </span>
                   <span style={{ fontSize: 10, color: "#a8a29e" }}>{theme.labels[p]}</span>
                 </div>
               ))}
