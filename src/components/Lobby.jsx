@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
-import { createGame, joinGame, listOpenGames } from "../lib/games.js";
+import { createGame, joinGame, listLobbyGames } from "../lib/games.js";
 import { supabase } from "../lib/supabase.js";
 import { SummitBadge } from "./SummitBadge.jsx";
 import {
@@ -17,14 +17,16 @@ import {
 export function Lobby() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [games, setGames] = useState([]);
+  const [open, setOpen] = useState([]);
+  const [inProgress, setInProgress] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
   const reload = async () => {
     try {
-      const rows = await listOpenGames();
-      setGames(rows);
+      const rows = await listLobbyGames();
+      setOpen(rows.open);
+      setInProgress(rows.inProgress);
     } catch (e) {
       setErr(e.message || String(e));
     } finally {
@@ -35,9 +37,6 @@ export function Lobby() {
   useEffect(() => {
     reload();
 
-    // Primary: Realtime subscription — instant updates when anyone creates,
-    // joins, or finishes a game. Log the status so we can diagnose if the
-    // channel fails to subscribe in the hosted environment.
     const channel = supabase
       .channel("lobby")
       .on(
@@ -45,13 +44,13 @@ export function Lobby() {
         { event: "*", schema: "public", table: "games" },
         () => reload()
       )
-      .subscribe((status, err) => {
-        if (err) console.error("[lobby realtime] error", err);
+      .subscribe((status, err2) => {
+        if (err2) console.error("[lobby realtime] error", err2);
         else console.log("[lobby realtime] status:", status);
       });
 
-    // Fallback: poll every 5 seconds in case Realtime is down or the
-    // subscription drops. Cheap — just one select of at most 20 rows.
+    // Polling fallback — realtime is the primary channel but this keeps
+    // the list fresh even if the subscription drops.
     const pollId = setInterval(reload, 5000);
 
     return () => {
@@ -78,6 +77,11 @@ export function Lobby() {
       setErr(e.message || String(e));
     }
   };
+
+  const opponentOf = (g) =>
+    user?.id === g.white_id ? g.black : g.white;
+  const myColorIn = (g) =>
+    user?.id === g.white_id ? "white" : "black";
 
   return (
     <div
@@ -123,7 +127,7 @@ export function Lobby() {
             margin: "0 0 20px",
           }}
         >
-          Create a game and wait for someone to join — or jump into an open one.
+          Resume a game in progress, join an open challenge, or start a new one.
         </p>
 
         <button
@@ -149,6 +153,118 @@ export function Lobby() {
 
         {err && <div style={{ ...errorBoxStyle, marginBottom: 16 }}>{err}</div>}
 
+        {/* Your games in progress */}
+        {inProgress.length > 0 && (
+          <div style={{ ...cardStyle, padding: "20px 24px", marginBottom: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 14,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "var(--text-xs)",
+                  color: "var(--accent)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.12em",
+                  fontWeight: 700,
+                }}
+              >
+                Your Games in Progress
+              </span>
+              <span
+                style={{
+                  background: "var(--accent-tint)",
+                  color: "var(--accent-hover)",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: "2px 8px",
+                  borderRadius: "var(--radius-pill)",
+                }}
+              >
+                {inProgress.length}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {inProgress.map((g, i) => {
+                const opp = opponentOf(g);
+                const myColor = myColorIn(g);
+                const yourTurn = g.turn === myColor;
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => navigate(`/game/${g.id}`)}
+                    style={{
+                      ...menuItemStyle,
+                      padding: "14px 18px",
+                      borderColor: yourTurn ? "var(--accent)" : "var(--border)",
+                      background: yourTurn ? "var(--accent-tint)" : "var(--bg-raised)",
+                      animation: `fadeSlideUp 0.4s var(--ease) ${i * 0.04}s both`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "var(--shadow-md)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: "var(--radius-sm)",
+                        background: "var(--bg-raised)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 20,
+                        flexShrink: 0,
+                        boxShadow: "var(--shadow-xs)",
+                      }}
+                    >
+                      ⏳
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={menuLabelStyle}>
+                        vs {opp?.display_name ?? "Unknown"}
+                        <span
+                          style={{
+                            color: "var(--text-tertiary)",
+                            fontWeight: 500,
+                            fontSize: "var(--text-xs)",
+                            marginLeft: 8,
+                            fontFamily: "var(--font-body)",
+                          }}
+                        >
+                          ELO {opp?.elo ?? 1000}
+                        </span>
+                      </span>
+                      <span style={menuDescStyle}>
+                        {yourTurn ? "Your turn — tap to play" : "Waiting on opponent"}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        color: "var(--accent-hover)",
+                        fontSize: "var(--text-md)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      →
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Open challenges */}
         <div style={{ ...cardStyle, padding: "20px 24px" }}>
           <div
             style={{
@@ -160,7 +276,7 @@ export function Lobby() {
               marginBottom: 14,
             }}
           >
-            Open Games
+            Open Challenges
           </div>
 
           {loading && (
@@ -168,7 +284,7 @@ export function Lobby() {
               Loading…
             </p>
           )}
-          {!loading && games.length === 0 && (
+          {!loading && open.length === 0 && (
             <p
               style={{
                 color: "var(--text-tertiary)",
@@ -181,7 +297,7 @@ export function Lobby() {
             </p>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {games.map((g, i) => {
+            {open.map((g, i) => {
               const isMine = g.white_id === user?.id;
               return (
                 <button
@@ -190,7 +306,7 @@ export function Lobby() {
                   style={{
                     ...menuItemStyle,
                     padding: "14px 18px",
-                    opacity: isMine ? 0.75 : 1,
+                    opacity: isMine ? 0.8 : 1,
                     animation: `fadeSlideUp 0.4s var(--ease) ${i * 0.04}s both`,
                   }}
                   onMouseEnter={(e) => {
@@ -219,7 +335,7 @@ export function Lobby() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={menuLabelStyle}>
-                      {g.profiles?.display_name ?? "Unknown"}
+                      {g.white?.display_name ?? "Unknown"}
                       <span
                         style={{
                           color: "var(--text-tertiary)",
@@ -229,7 +345,7 @@ export function Lobby() {
                           fontFamily: "var(--font-body)",
                         }}
                       >
-                        ELO {g.profiles?.elo ?? 1000}
+                        ELO {g.white?.elo ?? 1000}
                       </span>
                     </span>
                     <span style={menuDescStyle}>

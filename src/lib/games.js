@@ -89,15 +89,35 @@ export async function recordAiMatch({ userId, result, difficulty, moves }) {
   if (mErr) throw mErr;
 }
 
-export async function listOpenGames() {
-  const { data, error } = await supabase
-    .from("games")
-    .select("id, white_id, created_at, profiles:white_id ( display_name, elo )")
-    .eq("status", "waiting")
-    .order("created_at", { ascending: false })
-    .limit(20);
-  if (error) throw error;
-  return data ?? [];
+// Fetches both the shared lobby (open challenges) and the current user's
+// in-progress games. RLS does the heavy lifting — active games only come back
+// for the two players involved, so we don't need a WHERE clause for that.
+export async function listLobbyGames() {
+  const select = `
+    id, status, created_at, updated_at, white_id, black_id,
+    white:white_id ( display_name, elo ),
+    black:black_id ( display_name, elo )
+  `;
+  const [openRes, activeRes] = await Promise.all([
+    supabase
+      .from("games")
+      .select(select)
+      .eq("status", "waiting")
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("games")
+      .select(select)
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
+      .limit(20),
+  ]);
+  if (openRes.error) throw openRes.error;
+  if (activeRes.error) throw activeRes.error;
+  return {
+    open: openRes.data ?? [],
+    inProgress: activeRes.data ?? [],
+  };
 }
 
 export async function getGame(gameId) {
