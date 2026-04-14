@@ -2,23 +2,43 @@
 
 A chess game built for my kid's class — real-time online PvP, ELO ratings, training puzzles, and an AI opponent. The kids can play each other at school and ask for new features each week.
 
-## Quick start
+## Quick start (local Supabase)
+
+Runs the whole stack — app + Postgres + Auth + Realtime — on your laptop, no cloud account needed. Requires Docker running.
 
 ```bash
 npm install
+supabase start                  # spins up local Postgres/Auth/Realtime (first run pulls images)
+```
+
+`supabase start` prints a **Project URL** and **Publishable key**. Copy them into `.env.local`:
+
+```bash
 cp .env.example .env.local
-# Fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from your Supabase project
+# edit .env.local with the values supabase start printed
 npm run dev
 ```
 
 Open http://localhost:5173.
 
-## First-time setup (one-time)
+The local stack uses non-default ports so it can run alongside other supabase projects:
+- API: http://127.0.0.1:55321
+- Postgres: `postgresql://postgres:postgres@127.0.0.1:55322/postgres`
+- Studio: http://127.0.0.1:55323
+- Mailpit (fake email inbox): http://127.0.0.1:55324
+
+To stop: `supabase stop`. To reset the DB and re-run migrations: `supabase db reset`.
+
+## Deploying to hosted Supabase + Vercel
+
+When you're ready to put it online:
 
 1. Create a free project at https://supabase.com
-2. In the Supabase SQL editor, paste and run `supabase/schema.sql`
-3. In project settings → API, copy the **Project URL** and **anon public key** into `.env.local`
-4. `npm install && npm run dev`
+2. Link it: `supabase link --project-ref YOUR_REF`
+3. Push migrations: `supabase db push`
+4. Import the repo at https://vercel.com and add the two env vars:
+   - `VITE_SUPABASE_URL` — the hosted project URL
+   - `VITE_SUPABASE_ANON_KEY` — the project's anon/publishable key
 
 ## Deploying
 
@@ -62,7 +82,8 @@ src/
   hooks/        # useAuth, useProfile
   styles/       # global.css
 supabase/
-  schema.sql    # DB schema — paste into Supabase SQL editor
+  config.toml       # local Supabase CLI config
+  migrations/       # SQL migrations, applied automatically on `supabase start`
 tests/
   chess/        # Vitest suite for the engine
 ```
