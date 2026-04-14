@@ -1,0 +1,47 @@
+// Classic unicode chess glyphs. Proves theming is pluggable from day one.
+
+export const classic = {
+  id: "classic",
+  name: "Classic",
+  pieces: {
+    K: "♔",
+    Q: "♕",
+    R: "♖",
+    B: "♗",
+    N: "♘",
+    P: "♙",
+    k: "♚",
+    q: "♛",
+    r: "♜",
+    b: "♝",
+    n: "♞",
+    p: "♟",
+  },
+  labels: {
+    K: "King",
+    Q: "Queen",
+    R: "Rook",
+    B: "Bishop",
+    N: "Knight",
+    P: "Pawn",
+    k: "King",
+    q: "Queen",
+    r: "Rook",
+    b: "Bishop",
+    n: "Knight",
+    p: "Pawn",
+  },
+  boardColors: {
+    light: "#f0d9b5",
+    dark: "#b58863",
+    border: "#6b4f2b",
+    coord: "#3b2a16",
+  },
+  sideNames: { white: "White", black: "Black" },
+  sideEmojis: { white: "♔", black: "♚" },
+  sideClimates: { white: "◻", black: "◼" },
+  winText: {
+    white: "White wins!",
+    black: "Black wins!",
+  },
+};
