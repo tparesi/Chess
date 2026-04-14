@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 // An ambulance zooms in, grabs the captured piece, then zooms off the board
 // with the piece in tow. Plays when a capture happens — a signature kid feature.
 // Takes a piece key (e.g. "P", "k") and the theme; renders through theme.renderPiece.
-export function CaptureAnim({ pieceKey, theme, row, col, onDone }) {
+// `row` and `col` are grid coordinates (already flipped by the caller).
+// `flipped` tells us whether the viewer is the black player — we need it
+// to decide whether to drive visually UP or DOWN to reach the right strip.
+export function CaptureAnim({ pieceKey, theme, row, col, flipped, onDone }) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
@@ -16,10 +19,14 @@ export function CaptureAnim({ pieceKey, theme, row, col, onDone }) {
     return () => timers.forEach(clearTimeout);
   }, [onDone]);
 
-  // Direction to deliver the rescued piece:
-  // - Captured WHITE piece (uppercase): black captured it → top strip → drive UP
-  // - Captured BLACK piece (lowercase): white captured it → bottom strip → drive DOWN
-  const deliverUp = pieceKey === pieceKey.toUpperCase();
+  // Captured piece goes to the CAPTURER's pile, which sits on the capturer's
+  // side of the visual board. White piece captured → black's pile; black
+  // piece captured → white's pile. Which edge that pile is on depends on the
+  // viewer, since flipping puts the viewer's own color at the bottom.
+  //   not flipped: white at bottom, black at top
+  //       flipped: black at bottom, white at top
+  const pieceIsWhite = pieceKey === pieceKey.toUpperCase();
+  const deliverUp = flipped ? !pieceIsWhite : pieceIsWhite;
 
   const translate =
     phase === 0

@@ -177,6 +177,7 @@ export function GameBoard({
           theme={theme}
           row={animGrid[0]}
           col={animGrid[1]}
+          flipped={flipped}
           onDone={onCaptureAnimDone}
         />
       )}
