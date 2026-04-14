@@ -13,8 +13,6 @@ import {
   legalMoves,
 } from "../chess/moves.js";
 import { aiMove } from "../chess/ai.js";
-import { PIECE_VALUES } from "../chess/ai.js";
-import { generateTips } from "../chess/tips.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { useProfile } from "../hooks/useProfile.js";
 import { recordAiMatch } from "../lib/games.js";
@@ -234,17 +232,6 @@ export function AIGame() {
     if (gameStatus !== "checkmate" && gameStatus !== "stalemate") return;
     const winner =
       gameStatus === "checkmate" ? (turn === "white" ? "black" : "white") : null;
-    const playerWon = winner === "white";
-    const lostMaterial = captured.white.reduce(
-      (s, p) => s + PIECE_VALUES[p.toUpperCase()] / 100,
-      0
-    );
-    const gd = {
-      moves: history.length,
-      result: winner == null ? "draw" : playerWon ? "win" : "loss",
-      lostMaterial,
-    };
-    const tips = generateTips(gd);
 
     if (user && winner != null) {
       recordAiMatch({
@@ -255,12 +242,9 @@ export function AIGame() {
       }).catch((e) => console.error("[recordAiMatch]", e));
     }
 
-    const t = setTimeout(
-      () => setOverlay({ winner: winner ?? "white", tips }),
-      800
-    );
+    const t = setTimeout(() => setOverlay({ winner: winner ?? "white" }), 800);
     return () => clearTimeout(t);
-  }, [gameStatus, turn, captured.white, history, user, difficulty]);
+  }, [gameStatus, turn, history, user, difficulty]);
 
   const statusText = useMemo(() => {
     if (gameStatus === "checkmate") {
@@ -452,7 +436,6 @@ export function AIGame() {
           winnerName={overlay.winner === "white" ? playerName : aiName}
           loserName={overlay.winner === "white" ? aiName : playerName}
           theme={theme}
-          tips={overlay.tips}
           onReplay={reset}
           onMenu={() => navigate("/menu")}
         />

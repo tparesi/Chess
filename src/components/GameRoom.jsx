@@ -7,7 +7,6 @@ import {
   legalMoves,
   simulateMove,
 } from "../chess/moves.js";
-import { generateTips } from "../chess/tips.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { finalizePvpMatch, getGame, submitMove } from "../lib/games.js";
 import { supabase } from "../lib/supabase.js";
@@ -71,16 +70,8 @@ export function GameRoom() {
     if (!game || game.status !== "finished" || finalizedRef.current) return;
     finalizedRef.current = true;
     finalizePvpMatch(gameId).catch((e) => console.error("[finalize]", e));
-    const moves = Array.isArray(game.move_history) ? game.move_history.length : 0;
-    const winner = game.winner;
-    const playerWon = myColor && winner === myColor;
-    const tips = generateTips({
-      moves,
-      result: winner === "draw" ? "draw" : playerWon ? "win" : "loss",
-      lostMaterial: 0,
-    });
-    setOverlay({ winner: winner ?? "white", tips });
-  }, [game, gameId, myColor]);
+    setOverlay({ winner: game.winner ?? "white" });
+  }, [game, gameId]);
 
   const applyAndSubmit = useCallback(
     async (from, to, promo) => {
@@ -402,7 +393,6 @@ export function GameRoom() {
               : (game.white?.display_name ?? "White")
           }
           theme={theme}
-          tips={overlay.tips}
           onReplay={null}
           onMenu={() => navigate("/menu")}
         />
