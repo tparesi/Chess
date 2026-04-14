@@ -2,7 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signIn, signUp } from "../lib/auth.js";
 import { hasSupabaseConfig, supabase } from "../lib/supabase.js";
-import { btnStyle, inputStyle, primaryBtnStyle, screenStyle } from "./ui.js";
+import { SlopeSchoolTag, SummitBadge } from "./SummitBadge.jsx";
+import {
+  btnStyle,
+  cardStyle,
+  errorBoxStyle,
+  inputStyle,
+  labelStyle,
+  primaryBtnStyle,
+  screenStyle,
+} from "./ui.js";
 
 export function LoginScreen() {
   const navigate = useNavigate();
@@ -21,8 +30,6 @@ export function LoginScreen() {
       if (mode === "signup") {
         if (!displayName.trim()) throw new Error("Pick a display name");
         await signUp({ email: email.trim(), password, displayName: displayName.trim() });
-        // Some Supabase projects require email confirmation — if so, show a
-        // helpful message and let them sign in after they confirm.
         const { data } = await supabase.auth.getSession();
         if (data.session) {
           navigate("/menu");
@@ -43,103 +50,136 @@ export function LoginScreen() {
 
   return (
     <div style={screenStyle}>
-      <form onSubmit={submit} style={{ maxWidth: 360, width: "100%", textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>♞</div>
-        <h1
+      <div style={{ maxWidth: 420, width: "100%" }}>
+        <div
           style={{
-            fontFamily: "'Libre Baskerville',serif",
-            fontSize: "clamp(22px,5vw,32px)",
-            color: "#e7e5e4",
-            margin: "0 0 4px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            marginBottom: 32,
           }}
         >
-          Chess
-        </h1>
-        <p style={{ color: "#78716c", fontSize: 13, margin: "0 0 24px", fontStyle: "italic" }}>
-          {mode === "signin" ? "Sign in to play" : "Create an account"}
-        </p>
-
-        {!hasSupabaseConfig && (
-          <div
+          <SummitBadge size="hero" drop />
+          <SlopeSchoolTag style={{ marginTop: 20, animation: "fadeSlideUp 0.6s var(--ease) 0.15s both" }} />
+          <h1
             style={{
-              background: "#7f1d1d",
-              border: "1px solid #dc2626",
-              color: "#fecaca",
-              fontSize: 11,
-              padding: 10,
-              borderRadius: 6,
-              marginBottom: 12,
-              textAlign: "left",
+              fontFamily: "var(--font-display)",
+              fontSize: "var(--text-xl)",
+              fontWeight: 700,
+              color: "var(--text-primary)",
+              margin: "8px 0 4px",
+              letterSpacing: "-0.02em",
+              fontVariationSettings: '"SOFT" 50, "opsz" 144',
+              animation: "fadeSlideUp 0.6s var(--ease) 0.22s both",
             }}
           >
-            Supabase is not configured. Copy <code>.env.example</code> to <code>.env.local</code>{" "}
-            and fill in <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>,
-            then restart the dev server.
-          </div>
-        )}
-
-        {mode === "signup" && (
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Display name"
-            autoComplete="nickname"
-            style={{ ...inputStyle, marginBottom: 8 }}
-          />
-        )}
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          autoComplete="email"
-          style={{ ...inputStyle, marginBottom: 8 }}
-        />
-        <input
-          type="password"
-          required
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          style={{ ...inputStyle, marginBottom: 12 }}
-        />
-
-        {err && (
-          <div
+            Slope Chess
+          </h1>
+          <p
             style={{
-              color: "#fecaca",
-              background: "#7f1d1d",
-              border: "1px solid #dc2626",
-              borderRadius: 6,
-              padding: "8px 12px",
-              fontSize: 12,
-              marginBottom: 10,
+              fontFamily: "var(--font-display)",
+              fontStyle: "italic",
+              fontSize: "var(--text-sm)",
+              color: "var(--text-secondary)",
+              margin: 0,
+              animation: "fadeSlideUp 0.6s var(--ease) 0.3s both",
             }}
           >
-            {err}
+            We're leading the climb.
+          </p>
+        </div>
+
+        <form
+          onSubmit={submit}
+          style={{
+            ...cardStyle,
+            padding: "28px 32px",
+            boxShadow: "var(--shadow-md)",
+            animation: "fadeSlideUp 0.6s var(--ease) 0.4s both",
+          }}
+        >
+          {!hasSupabaseConfig && (
+            <div style={{ ...errorBoxStyle, marginBottom: 16 }}>
+              Supabase is not configured. Copy <code>.env.example</code> to{" "}
+              <code>.env.local</code> and fill in the values, then restart the dev server.
+            </div>
+          )}
+
+          {mode === "signup" && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Display name</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="What should we call you?"
+                autoComplete="nickname"
+                style={inputStyle}
+              />
+            </div>
+          )}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              style={inputStyle}
+            />
           </div>
-        )}
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>Password</label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••"
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              style={inputStyle}
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={busy}
-          style={{ ...primaryBtnStyle, width: "100%", padding: 10, fontSize: 14 }}
-        >
-          {busy ? "..." : mode === "signin" ? "Sign in" : "Sign up"}
-        </button>
+          {err && <div style={{ ...errorBoxStyle, marginBottom: 14 }}>{err}</div>}
 
-        <button
-          type="button"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          style={{ ...btnStyle, width: "100%", marginTop: 8, border: "none", color: "#78716c" }}
-        >
-          {mode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={busy}
+            style={{
+              ...primaryBtnStyle,
+              width: "100%",
+              padding: "14px 20px",
+              fontSize: "var(--text-base)",
+              opacity: busy ? 0.7 : 1,
+            }}
+          >
+            {busy ? "Just a moment…" : mode === "signin" ? "Sign in" : "Start climbing"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-secondary)",
+              fontSize: "var(--text-sm)",
+              padding: "12px 8px 0",
+              cursor: "pointer",
+              width: "100%",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            {mode === "signin"
+              ? "New to Slope Chess? Create an account"
+              : "Already have an account? Sign in"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

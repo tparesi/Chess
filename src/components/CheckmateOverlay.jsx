@@ -1,3 +1,4 @@
+import { SummitBadge } from "./SummitBadge.jsx";
 import { btnStyle, primaryBtnStyle } from "./ui.js";
 
 export function CheckmateOverlay({
@@ -5,7 +6,6 @@ export function CheckmateOverlay({
   winnerName,
   loserName,
   theme,
-  tips,
   eloDelta,
   onReplay,
   onMenu,
@@ -15,49 +15,63 @@ export function CheckmateOverlay({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,.85)",
+        background: "var(--bg-overlay)",
+        backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         zIndex: 200,
-        animation: "fadeIn .5s ease-out",
+        animation: "fadeIn 0.4s var(--ease) both",
+        padding: 20,
       }}
     >
       <div
         style={{
+          background: "var(--bg-raised)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-lg)",
+          padding: "32px 36px 28px",
           textAlign: "center",
-          maxWidth: 420,
-          width: "90%",
+          maxWidth: 440,
+          width: "100%",
           maxHeight: "90vh",
           overflowY: "auto",
-          padding: 20,
+          boxShadow: "var(--shadow-xl)",
+          animation: "summitDrop 0.6s var(--ease-overshoot) both",
         }}
       >
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <SummitBadge size={64} />
+        </div>
+
         <div
           style={{
-            animation: "crownDrop .8s cubic-bezier(.17,.89,.32,1.28) forwards",
             display: "inline-flex",
-            marginBottom: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            width: 80,
+            height: 80,
+            borderRadius: "50%",
+            background: "var(--accent-tint)",
+            marginBottom: 16,
+            animation: "crownDrop 0.8s var(--ease-overshoot) 0.15s both",
           }}
         >
-          {theme.renderPiece(winner === "white" ? "K" : "k", { size: "72px" })}
+          <div style={{ display: "inline-flex", position: "relative" }}>
+            {theme.renderPiece(winner === "white" ? "K" : "k", { size: "52px" })}
+          </div>
         </div>
-        <div
-          style={{
-            animation: "crownDrop 1s cubic-bezier(.17,.89,.32,1.28) forwards",
-            fontSize: 48,
-            marginBottom: 4,
-          }}
-        >
-          👑
-        </div>
+
         <h2
           style={{
-            fontFamily: "'Libre Baskerville',serif",
-            fontSize: "clamp(20px,4vw,28px)",
-            color: "#fbbf24",
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-xl)",
+            color: "var(--text-primary)",
             margin: "8px 0 4px",
-            animation: "fadeSlideUp .6s ease-out .3s both",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            fontVariationSettings: '"SOFT" 50, "opsz" 144',
+            animation: "fadeSlideUp 0.5s var(--ease) 0.3s both",
           }}
         >
           {winnerName ? `${winnerName} wins!` : `${theme.sideNames[winner]} wins!`}
@@ -65,30 +79,37 @@ export function CheckmateOverlay({
         {loserName && (
           <p
             style={{
-              color: "#a8a29e",
-              fontSize: 13,
+              fontFamily: "var(--font-display)",
+              fontStyle: "italic",
+              color: "var(--text-secondary)",
+              fontSize: "var(--text-sm)",
               margin: "0 0 16px",
-              animation: "fadeSlideUp .6s ease-out .5s both",
+              animation: "fadeSlideUp 0.5s var(--ease) 0.4s both",
             }}
           >
-            {winnerName ?? "Light"} defeats {loserName}
+            {winnerName ?? "Someone"} defeats {loserName}
           </p>
         )}
 
         {eloDelta != null && (
-          <p
+          <div
             style={{
-              color: eloDelta >= 0 ? "#22c55e" : "#ef4444",
-              fontSize: 14,
+              display: "inline-block",
+              padding: "8px 16px",
+              borderRadius: "var(--radius-pill)",
+              background: eloDelta >= 0 ? "var(--success-tint)" : "var(--error-tint)",
+              color: eloDelta >= 0 ? "var(--success)" : "var(--error)",
+              fontSize: "var(--text-sm)",
               fontWeight: 700,
-              margin: "0 0 12px",
-              animation: "fadeSlideUp .6s ease-out .6s both",
+              marginBottom: 16,
+              animation: "fadeSlideUp 0.5s var(--ease) 0.5s both",
             }}
           >
             {eloDelta >= 0 ? `+${eloDelta}` : eloDelta} ELO
-          </p>
+          </div>
         )}
 
+        {/* Confetti */}
         <div
           style={{
             position: "fixed",
@@ -98,99 +119,52 @@ export function CheckmateOverlay({
             zIndex: -1,
           }}
         >
-          {Array.from({ length: 20 }).map((_, i) => (
+          {Array.from({ length: 24 }).map((_, i) => (
             <div
               key={i}
               style={{
                 position: "absolute",
                 top: "-10%",
                 left: `${Math.random() * 100}%`,
-                width: 8,
-                height: 8,
-                borderRadius: Math.random() > 0.5 ? "50%" : "0",
-                background: ["#fbbf24", "#22c55e", "#ef4444", "#3b82f6", "#a855f7"][i % 5],
-                animation: `confetti ${2 + Math.random() * 2}s linear ${Math.random() * 0.5}s infinite`,
-                opacity: 0.8,
+                width: 9,
+                height: 9,
+                borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+                background: [
+                  "var(--primary)",
+                  "var(--accent)",
+                  "var(--success)",
+                  "var(--border-strong)",
+                  "var(--primary)",
+                ][i % 5],
+                animation: `confetti ${2.2 + Math.random() * 2}s linear ${Math.random() * 0.5}s infinite`,
+                opacity: 0.85,
               }}
             />
           ))}
         </div>
 
-        {tips && tips.length > 0 && (
-          <div style={{ textAlign: "left", animation: "fadeSlideUp .6s ease-out .7s both" }}>
-            <h3
-              style={{
-                color: "#d4d4d8",
-                fontSize: 14,
-                margin: "16px 0 8px",
-                fontFamily: "'Libre Baskerville',serif",
-              }}
-            >
-              Coaching Tips
-            </h3>
-            {tips.map((t, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "rgba(255,255,255,.05)",
-                  border: "1px solid #3a3025",
-                  borderRadius: 6,
-                  padding: "10px 12px",
-                  marginBottom: 8,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "#fbbf24",
-                    display: "block",
-                    marginBottom: 4,
-                  }}
-                >
-                  {t.title}
-                </span>
-                <p style={{ fontSize: 11, color: "#d4d4d8", margin: "0 0 6px", lineHeight: 1.5 }}>
-                  {t.tip}
-                </p>
-                {t.url && (
-                  <a
-                    href={t.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      fontSize: 10,
-                      color: "#60a5fa",
-                      textDecoration: "none",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    {t.urlLabel ?? "Learn more"} →
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
         <div
           style={{
             display: "flex",
-            gap: 8,
+            gap: 10,
             justifyContent: "center",
-            marginTop: 16,
-            animation: "fadeSlideUp .6s ease-out .9s both",
+            marginTop: 20,
+            animation: "fadeSlideUp 0.5s var(--ease) 0.6s both",
           }}
         >
           {onReplay && (
-            <button onClick={onReplay} style={primaryBtnStyle}>
+            <button
+              onClick={onReplay}
+              style={{ ...primaryBtnStyle, padding: "12px 24px", fontSize: "var(--text-sm)" }}
+            >
               Play Again
             </button>
           )}
-          <button onClick={onMenu} style={btnStyle}>
-            Menu
+          <button
+            onClick={onMenu}
+            style={{ ...btnStyle, padding: "12px 24px", fontSize: "var(--text-sm)" }}
+          >
+            Back to Menu
           </button>
         </div>
       </div>

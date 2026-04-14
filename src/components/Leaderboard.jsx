@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { loadLeaderboard } from "../lib/games.js";
-import { btnStyle, cardStyle, screenStyle } from "./ui.js";
+import { SummitBadge } from "./SummitBadge.jsx";
+import { cardStyle, errorBoxStyle, ghostBtnStyle } from "./ui.js";
 
 export function Leaderboard() {
   const navigate = useNavigate();
@@ -19,63 +20,80 @@ export function Leaderboard() {
   }, []);
 
   return (
-    <div style={screenStyle}>
-      <div style={{ maxWidth: 520, width: "100%" }}>
-        <button
-          onClick={() => navigate("/menu")}
-          style={{ ...btnStyle, marginBottom: 16 }}
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        padding: "32px 20px 64px",
+      }}
+    >
+      <div style={{ maxWidth: 600, width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 28,
+          }}
         >
-          ← Back
-        </button>
+          <SummitBadge size="header" showWordmark />
+          <button onClick={() => navigate("/menu")} style={ghostBtnStyle}>
+            ← Back
+          </button>
+        </div>
+
         <h2
           style={{
-            fontFamily: "'Libre Baskerville',serif",
-            fontSize: 24,
-            color: "#e7e5e4",
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-lg)",
+            fontWeight: 700,
+            color: "var(--text-primary)",
             margin: "0 0 4px",
-            textAlign: "center",
+            letterSpacing: "-0.02em",
+            fontVariationSettings: '"SOFT" 30, "opsz" 144',
           }}
         >
           Leaderboard
         </h2>
-        <p style={{ color: "#78716c", fontSize: 12, textAlign: "center", margin: "0 0 16px" }}>
-          Ranked by ELO
+        <p
+          style={{
+            color: "var(--text-secondary)",
+            fontSize: "var(--text-sm)",
+            margin: "0 0 24px",
+          }}
+        >
+          Ranked by ELO — keep climbing.
         </p>
 
-        {err && (
-          <div
-            style={{
-              background: "#7f1d1d",
-              border: "1px solid #dc2626",
-              color: "#fecaca",
-              fontSize: 12,
-              padding: 10,
-              borderRadius: 6,
-              marginBottom: 12,
-            }}
-          >
-            {err}
-          </div>
-        )}
+        {err && <div style={{ ...errorBoxStyle, marginBottom: 16 }}>{err}</div>}
 
         {loading ? (
-          <p style={{ color: "#78716c", textAlign: "center" }}>Loading…</p>
+          <p style={{ color: "var(--text-tertiary)", textAlign: "center" }}>Loading…</p>
         ) : rows.length === 0 ? (
-          <p style={{ color: "#57534e", textAlign: "center", fontStyle: "italic" }}>
-            No players yet
+          <p
+            style={{
+              color: "var(--text-tertiary)",
+              textAlign: "center",
+              fontStyle: "italic",
+            }}
+          >
+            No players yet — sign up a friend!
           </p>
         ) : (
           <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "40px 1fr 60px 40px 40px 40px",
-                padding: "8px 12px",
-                borderBottom: "1px solid #3a3025",
-                fontSize: 10,
-                color: "#78716c",
+                gridTemplateColumns: "48px 1fr 68px 44px 44px 44px",
+                padding: "14px 20px",
+                borderBottom: "1px solid var(--border)",
+                fontSize: "var(--text-xs)",
+                color: "var(--text-tertiary)",
                 textTransform: "uppercase",
-                letterSpacing: ".08em",
+                letterSpacing: "0.12em",
+                fontWeight: 600,
+                background: "var(--bg-sunk)",
               }}
             >
               <span>#</span>
@@ -92,34 +110,71 @@ export function Leaderboard() {
                   key={row.id}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "40px 1fr 60px 40px 40px 40px",
-                    padding: "8px 12px",
-                    borderBottom: i < rows.length - 1 ? "1px solid #3a3025" : "none",
-                    fontSize: 12,
-                    color: "#e7e5e4",
-                    background: isMe ? "rgba(251,191,36,.08)" : "transparent",
+                    gridTemplateColumns: "48px 1fr 68px 44px 44px 44px",
+                    alignItems: "center",
+                    padding: "14px 20px",
+                    borderBottom:
+                      i < rows.length - 1 ? "1px solid var(--border)" : "none",
+                    fontSize: "var(--text-sm)",
+                    color: "var(--text-primary)",
+                    background: isMe ? "var(--accent-tint)" : "transparent",
+                    animation: `fadeSlideUp 0.3s var(--ease) ${i * 0.03}s both`,
                   }}
                 >
                   <span
                     style={{
+                      fontSize: i < 3 ? 22 : "var(--text-sm)",
                       color:
                         i === 0
-                          ? "#fbbf24"
+                          ? "var(--accent)"
                           : i === 1
-                            ? "#94a3b8"
+                            ? "var(--text-secondary)"
                             : i === 2
-                              ? "#b45309"
-                              : "#78716c",
-                      fontWeight: i < 3 ? 700 : 400,
+                              ? "var(--board-dark)"
+                              : "var(--text-tertiary)",
+                      fontWeight: i < 3 ? 700 : 500,
                     }}
                   >
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
                   </span>
-                  <span style={{ fontWeight: 500 }}>{row.display_name}</span>
-                  <span style={{ color: "#fbbf24" }}>{row.elo}</span>
-                  <span style={{ color: "#22c55e" }}>{row.wins}</span>
-                  <span style={{ color: "#ef4444" }}>{row.losses}</span>
-                  <span style={{ color: "#a8a29e" }}>{row.draws}</span>
+                  <span
+                    style={{
+                      fontWeight: 500,
+                      fontFamily: isMe ? "var(--font-display)" : "var(--font-body)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {row.display_name}
+                    {isMe && (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: "var(--text-xs)",
+                          color: "var(--accent)",
+                          fontWeight: 600,
+                          fontFamily: "var(--font-body)",
+                        }}
+                      >
+                        YOU
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    style={{
+                      color: "var(--primary)",
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 700,
+                      fontSize: "var(--text-md)",
+                      fontVariationSettings: '"opsz" 144',
+                    }}
+                  >
+                    {row.elo}
+                  </span>
+                  <span style={{ color: "var(--success)" }}>{row.wins}</span>
+                  <span style={{ color: "var(--error)" }}>{row.losses}</span>
+                  <span style={{ color: "var(--text-tertiary)" }}>{row.draws}</span>
                 </div>
               );
             })}

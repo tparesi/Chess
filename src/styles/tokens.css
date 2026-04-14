@@ -1,0 +1,85 @@
+/* ─── Slope Chess design tokens ─────────────────────────────────── */
+
+:root {
+  /* ─ Surfaces ─ */
+  --bg: #fbf7ee;            /* warm linen — "morning paper" */
+  --bg-raised: #ffffff;     /* pure white cards */
+  --bg-sunk: #f3ede0;       /* hazelnut cream panels */
+  --bg-overlay: rgba(28, 47, 62, 0.56); /* modal backdrop, warm slate */
+
+  /* ─ Ink ─ */
+  --text-primary: #1c2f3e;    /* deep alpine slate */
+  --text-secondary: #5d6d7f;  /* cool stone gray */
+  --text-tertiary: #9ca3ad;   /* mist */
+  --text-inverse: #ffffff;    /* on dark surfaces */
+
+  /* ─ Lines ─ */
+  --border: #e6dfd0;
+  --border-strong: #c9bfa8;
+  --border-focus: #1e5a8e;
+
+  /* ─ Primary — "alpine ascent" ─ */
+  --primary: #1e5a8e;
+  --primary-hover: #174670;
+  --primary-tint: #e4edf5;
+  --primary-tint-strong: #cfdcea;
+
+  /* ─ Accent — "summit amber" ─ */
+  --accent: #d4821c;
+  --accent-hover: #b26a10;
+  --accent-tint: #fdf0db;
+
+  /* ─ Semantic ─ */
+  --success: #2f7d55;
+  --success-tint: #e4f2ea;
+  --error: #b54048;
+  --error-tint: #f9e7e8;
+
+  /* ─ Summit badge (dark tile that holds the white logo) ─ */
+  --summit: #1c2f3e;
+  --summit-glow: #2d4558;
+
+  /* ─ Chess board ─ */
+  --board-light: #f2deba;         /* buttercream */
+  --board-dark: #9c6f3f;          /* walnut */
+  --board-border: #3d2e20;        /* dark walnut frame */
+  --board-highlight-light: #e6e08a; /* selected / last move on light */
+  --board-highlight-dark: #b59c39;  /* selected / last move on dark */
+  --board-coord: #7a5a33;           /* coord labels, warm brown */
+  --check-red: #d04a3a;
+
+  /* ─ Radius ─ */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-pill: 9999px;
+
+  /* ─ Warm shadows (never black) ─ */
+  --shadow-xs: 0 1px 2px rgba(43, 30, 15, 0.06);
+  --shadow-sm: 0 2px 6px rgba(43, 30, 15, 0.07), 0 1px 2px rgba(43, 30, 15, 0.05);
+  --shadow-md: 0 6px 16px rgba(43, 30, 15, 0.10), 0 2px 4px rgba(43, 30, 15, 0.06);
+  --shadow-lg: 0 18px 40px rgba(43, 30, 15, 0.14), 0 6px 12px rgba(43, 30, 15, 0.08);
+  --shadow-xl: 0 32px 80px rgba(43, 30, 15, 0.18);
+  --ring-focus: 0 0 0 3px rgba(30, 90, 142, 0.22);
+
+  /* ─ Typography ─ */
+  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --font-body: "Outfit", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --text-xs: clamp(10px, 0.72vw + 8px, 11px);
+  --text-sm: clamp(12px, 0.8vw + 9px, 13px);
+  --text-base: clamp(14px, 0.9vw + 11px, 16px);
+  --text-md: clamp(16px, 1.1vw + 12px, 18px);
+  --text-lg: clamp(20px, 1.4vw + 14px, 24px);
+  --text-xl: clamp(28px, 2.4vw + 18px, 36px);
+  --text-2xl: clamp(40px, 3.6vw + 20px, 56px);
+
+  /* ─ Motion ─ */
+  --ease: cubic-bezier(0.2, 0.85, 0.4, 1);
+  --ease-overshoot: cubic-bezier(0.2, 0.85, 0.4, 1.15);
+  --dur-fast: 160ms;
+  --dur: 220ms;
+  --dur-slow: 380ms;
+}

@@ -20,7 +20,9 @@ import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
 import { GameBoard, SQ } from "./GameBoard.jsx";
 import { PromotionDialog } from "./PromotionDialog.jsx";
-import { btnStyle, cardStyle, sortCapturedByValue } from "./ui.js";
+import { CapturedStrip } from "./CapturedStrip.jsx";
+import { SummitBadge } from "./SummitBadge.jsx";
+import { btnStyle, cardStyle, ghostBtnStyle, sortCapturedByValue } from "./ui.js";
 
 const initialCastling = () => ({ ...INITIAL_CASTLING });
 
@@ -258,170 +260,242 @@ export function AIGame() {
     return `${turn === "white" ? theme.sideNames.white : theme.sideNames.black} to move`;
   }, [gameStatus, turn, aiThinking, theme]);
 
+  const statusTone =
+    gameStatus === "checkmate"
+      ? { bg: "var(--success-tint)", border: "var(--success)", color: "var(--success)" }
+      : gameStatus === "check"
+        ? { bg: "var(--error-tint)", border: "var(--error)", color: "var(--error)" }
+        : aiThinking
+          ? { bg: "var(--primary-tint)", border: "var(--primary)", color: "var(--primary)" }
+          : { bg: "var(--bg-raised)", border: "var(--border)", color: "var(--text-primary)" };
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(145deg,#1a1510,#2a2015,#1a1510)",
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
-        padding: "20px 12px",
-        color: "#e7e5e4",
+        padding: "32px 20px 64px",
+        color: "var(--text-primary)",
       }}
     >
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap", justifyContent: "center" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              width: `calc(${SQ} * 8)`,
-            }}
-          >
-            <div>
-              <h1 style={{ fontFamily: "'Libre Baskerville',serif", fontSize: "clamp(16px,3.5vw,22px)", margin: 0 }}>
-                Chess
-              </h1>
-              <span style={{ fontSize: 10, color: "#78716c", textTransform: "uppercase", letterSpacing: ".08em" }}>
-                vs AI ({difficulty})
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button
-                onClick={() => navigate("/menu")}
-                style={btnStyle}
-              >
-                Menu
-              </button>
-              <button onClick={reset} style={{ ...btnStyle, color: "#a8a29e" }}>
-                Restart
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 2, minHeight: 22, alignItems: "center", width: `calc(${SQ} * 8)`, paddingLeft: 2 }}>
-            <span style={{ fontSize: 13, marginRight: 4 }}>{theme.sideClimates.black}</span>
-            {sortCapturedByValue(captured.black).map((p, i) => (
-              <span key={i} style={{ opacity: 0.85, display: "inline-flex" }}>
-                {theme.renderPiece(p, { size: "18px" })}
-              </span>
-            ))}
-          </div>
-
-          <GameBoard
-            board={board}
-            theme={theme}
-            selected={selected}
-            validMoves={validMoves}
-            lastMove={lastMove}
-            turn={turn}
-            inCheck={gameStatus === "check"}
-            captureAnim={captureAnim}
-            onSquareClick={handleClick}
-            onCaptureAnimDone={() => setCaptureAnim(null)}
-            disabled={turn === "black" || aiThinking}
-          />
-
-          <div style={{ display: "flex", gap: 2, minHeight: 22, alignItems: "center", width: `calc(${SQ} * 8)`, paddingLeft: 2 }}>
-            <span style={{ fontSize: 13, marginRight: 4 }}>{theme.sideClimates.white}</span>
-            {sortCapturedByValue(captured.white).map((p, i) => (
-              <span key={i} style={{ opacity: 0.85, display: "inline-flex" }}>
-                {theme.renderPiece(p, { size: "18px" })}
-              </span>
-            ))}
-          </div>
-
-          <div
-            style={{
-              padding: "7px 14px",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: 500,
-              background:
-                gameStatus === "checkmate"
-                  ? "#14532d"
-                  : gameStatus === "check"
-                    ? "#7f1d1d"
-                    : aiThinking
-                      ? "#1e293b"
-                      : "#292118",
-              border: `1px solid ${
-                gameStatus === "checkmate"
-                  ? "#22c55e"
-                  : gameStatus === "check"
-                    ? "#dc2626"
-                    : aiThinking
-                      ? "#3b82f6"
-                      : "#44403c"
-              }`,
-              color:
-                gameStatus === "checkmate"
-                  ? "#bbf7d0"
-                  : gameStatus === "check"
-                    ? "#fecaca"
-                    : aiThinking
-                      ? "#93c5fd"
-                      : "#e7e5e4",
-              width: `calc(${SQ} * 8)`,
-              textAlign: "center",
-            }}
-          >
-            {statusText}
-            {aiThinking && (
-              <span style={{ marginLeft: 2 }}>
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    style={{
-                      animation: "dotPulse 1.4s infinite",
-                      animationDelay: `${i * 0.2}s`,
-                      fontSize: 16,
-                      fontWeight: 700,
-                    }}
-                  >
-                    .
-                  </span>
-                ))}
-              </span>
-            )}
+      <div
+        style={{
+          maxWidth: 900,
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+        }}
+      >
+        {/* Top header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <SummitBadge size="header" showWordmark subtitle={`vs AI · ${difficulty}`} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={reset} style={ghostBtnStyle}>
+              Restart
+            </button>
+            <button onClick={() => navigate("/menu")} style={btnStyle}>
+              Menu
+            </button>
           </div>
         </div>
 
-        <div style={{ ...cardStyle, width: 170, maxHeight: `calc(${SQ} * 8 + 120px)`, overflow: "hidden", display: "flex", flexDirection: "column", padding: 0 }}>
-          <div style={{ padding: "10px 12px 6px", borderBottom: "1px solid #3a3025" }}>
-            <h2 style={{ fontFamily: "'Libre Baskerville',serif", fontSize: 13, fontWeight: 700, margin: 0, color: "#a8a29e", letterSpacing: ".05em", textTransform: "uppercase" }}>
-              Moves
-            </h2>
+        {/* Main layout: board + sidebar */}
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            {/* Top captured strip (opponent's pile) */}
+            <CapturedStrip
+              name={aiName}
+              pieces={sortCapturedByValue(captured.black)}
+              theme={theme}
+              sqWidth={`calc(${SQ} * 8)`}
+            />
+
+            <GameBoard
+              board={board}
+              theme={theme}
+              selected={selected}
+              validMoves={validMoves}
+              lastMove={lastMove}
+              turn={turn}
+              inCheck={gameStatus === "check"}
+              captureAnim={captureAnim}
+              onSquareClick={handleClick}
+              onCaptureAnimDone={() => setCaptureAnim(null)}
+              disabled={turn === "black" || aiThinking}
+            />
+
+            {/* Bottom captured strip (your pile) */}
+            <CapturedStrip
+              name={playerName}
+              pieces={sortCapturedByValue(captured.white)}
+              theme={theme}
+              sqWidth={`calc(${SQ} * 8)`}
+              self
+            />
+
+            {/* Status bar */}
+            <div
+              style={{
+                padding: "12px 18px",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "var(--text-sm)",
+                fontWeight: 500,
+                background: statusTone.bg,
+                border: `1px solid ${statusTone.border}`,
+                color: statusTone.color,
+                width: `calc(${SQ} * 8)`,
+                textAlign: "center",
+                fontFamily: "var(--font-body)",
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              {statusText}
+              {aiThinking && (
+                <span style={{ marginLeft: 4 }}>
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      style={{
+                        animation: "dotPulse 1.4s infinite",
+                        animationDelay: `${i * 0.2}s`,
+                        fontSize: 18,
+                        fontWeight: 700,
+                      }}
+                    >
+                      .
+                    </span>
+                  ))}
+                </span>
+              )}
+            </div>
           </div>
-          <div ref={movesScrollRef} style={{ padding: "6px 12px", overflowY: "auto", flex: 1, fontSize: 12 }}>
-            {history.length === 0 && (
-              <span style={{ color: "#57534e", fontStyle: "italic", fontSize: 11 }}>No moves yet</span>
-            )}
-            {Array.from({ length: Math.ceil(history.length / 2) }).map((_, i) => (
-              <div key={i} style={{ display: "flex", gap: 5, padding: "1.5px 0", animation: "fadeIn .2s ease-out" }}>
-                <span style={{ color: "#57534e", minWidth: 22, fontSize: 10 }}>{i + 1}.</span>
-                <span style={{ color: "#e7e5e4", minWidth: 44, fontSize: 12 }}>{history[i * 2]}</span>
-                {history[i * 2 + 1] && (
-                  <span style={{ color: "#a8a29e", fontSize: 12 }}>{history[i * 2 + 1]}</span>
-                )}
-              </div>
-            ))}
-          </div>
-          <div style={{ borderTop: "1px solid #3a3025", padding: "8px 12px" }}>
-            <span style={{ fontSize: 10, color: "#78716c", textTransform: "uppercase", letterSpacing: ".08em", display: "block", marginBottom: 4 }}>
-              Pieces
-            </span>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 8px" }}>
-              {["K", "Q", "R", "B", "N", "P"].map((p) => (
-                <div key={p} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ display: "inline-flex" }}>
-                    {theme.renderPiece(p, { size: "18px" })}
+
+          {/* Sidebar: moves + piece legend */}
+          <div
+            style={{
+              ...cardStyle,
+              width: 200,
+              maxHeight: `calc(${SQ} * 8 + 120px)`,
+              padding: 0,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                padding: "14px 18px 10px",
+                borderBottom: "1px solid var(--border)",
+                background: "var(--bg-sunk)",
+              }}
+            >
+              <h2
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: 700,
+                  margin: 0,
+                  color: "var(--text-tertiary)",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Moves
+              </h2>
+            </div>
+            <div
+              ref={movesScrollRef}
+              style={{
+                padding: "8px 16px",
+                overflowY: "auto",
+                flex: 1,
+                fontSize: "var(--text-sm)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {history.length === 0 && (
+                <span
+                  style={{
+                    color: "var(--text-tertiary)",
+                    fontStyle: "italic",
+                    fontFamily: "var(--font-body)",
+                    fontSize: "var(--text-xs)",
+                  }}
+                >
+                  No moves yet
+                </span>
+              )}
+              {Array.from({ length: Math.ceil(history.length / 2) }).map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    padding: "3px 0",
+                    animation: "fadeIn 0.2s var(--ease) both",
+                  }}
+                >
+                  <span style={{ color: "var(--text-tertiary)", minWidth: 22 }}>{i + 1}.</span>
+                  <span style={{ color: "var(--text-primary)", minWidth: 48, fontWeight: 500 }}>
+                    {history[i * 2]}
                   </span>
-                  <span style={{ fontSize: 10, color: "#a8a29e" }}>{theme.labels[p]}</span>
+                  {history[i * 2 + 1] && (
+                    <span style={{ color: "var(--text-secondary)" }}>{history[i * 2 + 1]}</span>
+                  )}
                 </div>
               ))}
+            </div>
+            <div
+              style={{
+                borderTop: "1px solid var(--border)",
+                padding: "12px 16px",
+                background: "var(--bg-sunk)",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "var(--text-xs)",
+                  color: "var(--text-tertiary)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.12em",
+                  fontWeight: 600,
+                  display: "block",
+                  marginBottom: 8,
+                }}
+              >
+                Pieces
+              </span>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 10px" }}>
+                {["K", "Q", "R", "B", "N", "P"].map((p) => (
+                  <div key={p} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ display: "inline-flex" }}>
+                      {theme.renderPiece(p, { size: "20px" })}
+                    </span>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
+                      {theme.labels[p]}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+@import url("./tokens.css");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..800;1,9..144,500..700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 *,
 *::before,
@@ -15,31 +16,49 @@ body,
 }
 
 body {
-  background: #1a1510;
-  font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #e7e5e4;
+  background-color: var(--bg);
+  background-image: url("/topo.svg");
+  background-size: 640px 640px;
+  background-attachment: fixed;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button {
-  font-family: inherit;
+  font-family: var(--font-body);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
 }
 
 input,
 textarea,
 select {
-  font-family: inherit;
+  font-family: var(--font-body);
   color: inherit;
 }
 
 a {
-  color: #60a5fa;
+  color: var(--primary);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
 }
 
+/* ─── Ambulance + check animations (kept from v1) ─────────────── */
 @keyframes sirenPulse {
-  0%   { filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.9)); }
-  100% { filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.9)); }
+  0%   { filter: drop-shadow(0 0 6px rgba(208, 74, 58, 0.9)); }
+  100% { filter: drop-shadow(0 0 8px rgba(30, 90, 142, 0.9)); }
 }
 @keyframes animalWobble {
   0%   { transform: rotate(-8deg) scale(1.1); }
@@ -58,14 +77,23 @@ a {
   0%, 80%, 100% { opacity: 0.2; }
   40% { opacity: 1; }
 }
+
+/* ─── Slope-style entrance animations ─────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes summitDrop {
+  0%   { opacity: 0; transform: translateY(-20px) scale(0.92); }
+  55%  { opacity: 1; transform: translateY(4px)   scale(1.02); }
+  100% { opacity: 1; transform: translateY(0)     scale(1); }
+}
+
+/* Check flash — warm rowanberry red */
 @keyframes checkPulse {
   0%   { opacity: 0; transform: scale(0.5); }
   20%  { opacity: 1; transform: scale(1.2); }
@@ -75,6 +103,8 @@ a {
   0%   { transform: scale(0.6); opacity: 0.8; }
   100% { transform: scale(1.8); opacity: 0; }
 }
+
+/* Winner overlay */
 @keyframes crownDrop {
   0%   { opacity: 0; transform: translateY(-30px) scale(0.5); }
   60%  {             transform: translateY(5px)   scale(1.05); }
@@ -83,4 +113,10 @@ a {
 @keyframes confetti {
   0%   { transform: translateY(0)     rotate(0);    opacity: 1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* Gentle "ascent" lift on primary button hover */
+@keyframes ascentPulse {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1px); }
 }

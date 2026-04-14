@@ -17,7 +17,8 @@ export function CheckFlash({ row, col }) {
           width: "100%",
           height: "100%",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(239,68,68,.6) 0%, transparent 70%)",
+          background:
+            "radial-gradient(circle, rgba(208, 74, 58, 0.55) 0%, transparent 70%)",
           animation: "checkRipple 1s ease-out infinite",
         }}
       />

@@ -14,7 +14,9 @@ import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
 import { GameBoard, SQ } from "./GameBoard.jsx";
 import { PromotionDialog } from "./PromotionDialog.jsx";
-import { btnStyle, cardStyle, primaryBtnStyle, sortCapturedByValue } from "./ui.js";
+import { CapturedStrip } from "./CapturedStrip.jsx";
+import { SummitBadge } from "./SummitBadge.jsx";
+import { btnStyle, cardStyle, errorBoxStyle, ghostBtnStyle, primaryBtnStyle, sortCapturedByValue } from "./ui.js";
 
 export function GameRoom() {
   const { id: gameId } = useParams();
@@ -259,193 +261,192 @@ export function GameRoom() {
             ? `${opponentName} in check`
             : `${opponentName}'s turn`;
 
+  const statusTone = inCheck
+    ? { bg: "var(--error-tint)", border: "var(--error)", color: "var(--error)" }
+    : game.status === "waiting"
+      ? { bg: "var(--accent-tint)", border: "var(--accent)", color: "var(--accent-hover)" }
+      : { bg: "var(--bg-raised)", border: "var(--border)", color: "var(--text-primary)" };
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(145deg,#1a1510,#2a2015,#1a1510)",
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
-        padding: "20px 12px",
-        color: "#e7e5e4",
+        padding: "32px 20px 64px",
+        color: "var(--text-primary)",
       }}
     >
       <div
         style={{
+          maxWidth: 900,
+          width: "100%",
           display: "flex",
+          flexDirection: "column",
           gap: 20,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-          justifyContent: "center",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              width: `calc(${SQ} * 8)`,
-            }}
-          >
-            <div>
-              <h1 style={{ fontFamily: "'Libre Baskerville',serif", fontSize: "clamp(16px,3.5vw,22px)", margin: 0 }}>
-                vs {opponentName}
-              </h1>
-              <span style={{ fontSize: 10, color: "#78716c", textTransform: "uppercase", letterSpacing: ".08em" }}>
-                {myColor ? `You are ${myColor}` : "Spectating"}
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => navigate("/lobby")} style={btnStyle}>
-                Lobby
-              </button>
-              {myColor && game.status === "active" && (
-                <button onClick={() => setConfirmForfeit(true)} style={{ ...btnStyle, color: "#fecaca" }}>
-                  Forfeit
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Top strip belongs to the opponent (always visually above you).
-              It shows the pieces the opponent has captured from you. */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              width: `calc(${SQ} * 8)`,
-              minHeight: 22,
-              fontSize: 11,
-              color: "#a8a29e",
-              gap: 6,
-            }}
-          >
-            <span>{opponentName}</span>
-            <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-              {sortCapturedByValue(flipped ? captured.white : captured.black).map((p, i) => (
-                <span key={i} style={{ opacity: 0.85, display: "inline-flex" }}>
-                  {theme.renderPiece(p, { size: "18px" })}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <GameBoard
-            board={game.board}
-            theme={theme}
-            selected={selected}
-            validMoves={validMoves}
-            lastMove={null}
-            turn={game.turn}
-            inCheck={inCheck}
-            captureAnim={captureAnim}
-            onSquareClick={handleClick}
-            onCaptureAnimDone={() => setCaptureAnim(null)}
-            disabled={!isMyTurn || game.status !== "active"}
-            flipped={flipped}
+        {/* Top header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <SummitBadge
+            size="header"
+            showWordmark
+            subtitle={myColor ? `vs ${opponentName}` : "Spectating"}
           />
-
-          {/* Bottom strip is yours — pieces you've captured from the opponent. */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              width: `calc(${SQ} * 8)`,
-              minHeight: 22,
-              fontSize: 11,
-              color: "#a8a29e",
-              gap: 6,
-            }}
-          >
-            <span>{myName}</span>
-            <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-              {sortCapturedByValue(flipped ? captured.black : captured.white).map((p, i) => (
-                <span key={i} style={{ opacity: 0.85, display: "inline-flex" }}>
-                  {theme.renderPiece(p, { size: "18px" })}
-                </span>
-              ))}
-            </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {myColor && game.status === "active" && (
+              <button
+                onClick={() => setConfirmForfeit(true)}
+                style={{ ...ghostBtnStyle, color: "var(--error)" }}
+              >
+                Forfeit
+              </button>
+            )}
+            <button onClick={() => navigate("/lobby")} style={btnStyle}>
+              Lobby
+            </button>
           </div>
-
-          <div
-            style={{
-              padding: "7px 14px",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: 500,
-              background: inCheck ? "#7f1d1d" : "#292118",
-              border: `1px solid ${inCheck ? "#dc2626" : "#44403c"}`,
-              color: inCheck ? "#fecaca" : "#e7e5e4",
-              width: `calc(${SQ} * 8)`,
-              textAlign: "center",
-            }}
-          >
-            {statusText}
-          </div>
-
-          {err && (
-            <div
-              style={{
-                width: `calc(${SQ} * 8)`,
-                background: "#7f1d1d",
-                border: "1px solid #dc2626",
-                color: "#fecaca",
-                fontSize: 12,
-                padding: 10,
-                borderRadius: 6,
-              }}
-            >
-              {err}
-            </div>
-          )}
         </div>
 
         <div
           style={{
-            ...cardStyle,
-            width: 170,
-            maxHeight: `calc(${SQ} * 8 + 120px)`,
             display: "flex",
-            flexDirection: "column",
-            padding: 0,
+            gap: 24,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            justifyContent: "center",
           }}
         >
-          <div style={{ padding: "10px 12px 6px", borderBottom: "1px solid #3a3025" }}>
-            <h2
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <CapturedStrip
+              name={opponentName}
+              pieces={sortCapturedByValue(flipped ? captured.white : captured.black)}
+              theme={theme}
+              sqWidth={`calc(${SQ} * 8)`}
+            />
+
+            <GameBoard
+              board={game.board}
+              theme={theme}
+              selected={selected}
+              validMoves={validMoves}
+              lastMove={null}
+              turn={game.turn}
+              inCheck={inCheck}
+              captureAnim={captureAnim}
+              onSquareClick={handleClick}
+              onCaptureAnimDone={() => setCaptureAnim(null)}
+              disabled={!isMyTurn || game.status !== "active"}
+              flipped={flipped}
+            />
+
+            <CapturedStrip
+              name={myName}
+              pieces={sortCapturedByValue(flipped ? captured.black : captured.white)}
+              theme={theme}
+              sqWidth={`calc(${SQ} * 8)`}
+              self
+            />
+
+            <div
               style={{
-                fontFamily: "'Libre Baskerville',serif",
-                fontSize: 13,
-                fontWeight: 700,
-                margin: 0,
-                color: "#a8a29e",
-                letterSpacing: ".05em",
-                textTransform: "uppercase",
+                padding: "12px 18px",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "var(--text-sm)",
+                fontWeight: 500,
+                background: statusTone.bg,
+                border: `1px solid ${statusTone.border}`,
+                color: statusTone.color,
+                width: `calc(${SQ} * 8)`,
+                textAlign: "center",
+                fontFamily: "var(--font-body)",
+                boxShadow: "var(--shadow-xs)",
               }}
             >
-              Moves
-            </h2>
-          </div>
-          <div style={{ padding: "6px 12px", overflowY: "auto", flex: 1, fontSize: 12 }}>
-            {(!game.move_history || game.move_history.length === 0) && (
-              <span style={{ color: "#57534e", fontStyle: "italic", fontSize: 11 }}>No moves yet</span>
+              {statusText}
+            </div>
+
+            {err && (
+              <div style={{ ...errorBoxStyle, width: `calc(${SQ} * 8)` }}>{err}</div>
             )}
-            {Array.from({ length: Math.ceil((game.move_history?.length ?? 0) / 2) }).map((_, i) => (
-              <div key={i} style={{ display: "flex", gap: 5, padding: "1.5px 0" }}>
-                <span style={{ color: "#57534e", minWidth: 22, fontSize: 10 }}>{i + 1}.</span>
-                <span style={{ color: "#e7e5e4", minWidth: 44, fontSize: 12 }}>
-                  {game.move_history[i * 2]}
+          </div>
+
+          <div
+            style={{
+              ...cardStyle,
+              width: 200,
+              maxHeight: `calc(${SQ} * 8 + 120px)`,
+              padding: 0,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                padding: "14px 18px 10px",
+                borderBottom: "1px solid var(--border)",
+                background: "var(--bg-sunk)",
+              }}
+            >
+              <h2
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: 700,
+                  margin: 0,
+                  color: "var(--text-tertiary)",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Moves
+              </h2>
+            </div>
+            <div
+              style={{
+                padding: "8px 16px",
+                overflowY: "auto",
+                flex: 1,
+                fontSize: "var(--text-sm)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {(!game.move_history || game.move_history.length === 0) && (
+                <span
+                  style={{
+                    color: "var(--text-tertiary)",
+                    fontStyle: "italic",
+                    fontFamily: "var(--font-body)",
+                    fontSize: "var(--text-xs)",
+                  }}
+                >
+                  No moves yet
                 </span>
-                {game.move_history[i * 2 + 1] && (
-                  <span style={{ color: "#a8a29e", fontSize: 12 }}>
-                    {game.move_history[i * 2 + 1]}
+              )}
+              {Array.from({ length: Math.ceil((game.move_history?.length ?? 0) / 2) }).map((_, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, padding: "3px 0" }}>
+                  <span style={{ color: "var(--text-tertiary)", minWidth: 22 }}>{i + 1}.</span>
+                  <span style={{ color: "var(--text-primary)", minWidth: 48, fontWeight: 500 }}>
+                    {game.move_history[i * 2]}
                   </span>
-                )}
-              </div>
-            ))}
+                  {game.move_history[i * 2 + 1] && (
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      {game.move_history[i * 2 + 1]}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -481,54 +482,61 @@ export function GameRoom() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,.8)",
+            background: "var(--bg-overlay)",
+            backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 150,
-            animation: "fadeIn .2s ease-out",
+            animation: "fadeIn 0.25s var(--ease)",
           }}
           onClick={() => setConfirmForfeit(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: "#292118",
-              border: "1px solid #5c4a2e",
-              borderRadius: 10,
-              padding: "24px 28px",
-              maxWidth: 360,
+              background: "var(--bg-raised)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-md)",
+              padding: "28px 32px 24px",
+              maxWidth: 380,
               width: "88%",
               textAlign: "center",
+              boxShadow: "var(--shadow-lg)",
+              animation: "summitDrop 0.5s var(--ease-overshoot) both",
             }}
           >
-            <div style={{ fontSize: 40, marginBottom: 8 }}>🏳️</div>
+            <div style={{ fontSize: 44, marginBottom: 10 }}>🏳️</div>
             <h3
               style={{
-                fontFamily: "'Libre Baskerville',serif",
-                fontSize: 18,
-                color: "#fbbf24",
+                fontFamily: "var(--font-display)",
+                fontSize: "var(--text-md)",
+                fontWeight: 700,
+                color: "var(--text-primary)",
                 margin: "0 0 8px",
+                letterSpacing: "-0.01em",
+                fontVariationSettings: '"SOFT" 30, "opsz" 144',
               }}
             >
               Forfeit this game?
             </h3>
             <p
               style={{
-                fontSize: 12,
-                color: "#d4d4d8",
-                margin: "0 0 18px",
-                lineHeight: 1.5,
+                fontSize: "var(--text-sm)",
+                color: "var(--text-secondary)",
+                margin: "0 0 20px",
+                lineHeight: 1.55,
               }}
             >
-              This counts as a <strong style={{ color: "#ef4444" }}>loss</strong> and
-              will <strong style={{ color: "#ef4444" }}>lower your ELO</strong>. Your
+              This counts as a{" "}
+              <strong style={{ color: "var(--error)" }}>loss</strong> and will{" "}
+              <strong style={{ color: "var(--error)" }}>lower your ELO</strong>. Your
               opponent will be declared the winner.
             </p>
-            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button
                 onClick={() => setConfirmForfeit(false)}
-                style={{ ...btnStyle, padding: "8px 20px" }}
+                style={{ ...btnStyle, padding: "10px 22px" }}
               >
                 Keep playing
               </button>
@@ -536,8 +544,9 @@ export function GameRoom() {
                 onClick={handleForfeit}
                 style={{
                   ...primaryBtnStyle,
-                  background: "#dc2626",
-                  padding: "8px 20px",
+                  background: "var(--error)",
+                  border: "1px solid var(--error)",
+                  padding: "10px 22px",
                 }}
               >
                 Yes, forfeit

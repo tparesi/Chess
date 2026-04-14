@@ -14,7 +14,6 @@ import { Lobby } from "./components/Lobby.jsx";
 import { LoginScreen } from "./components/LoginScreen.jsx";
 import { Menu } from "./components/Menu.jsx";
 import { PlayMenu } from "./components/PlayMenu.jsx";
-import { PuzzleMode } from "./components/PuzzleMode.jsx";
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -81,14 +80,6 @@ export default function App() {
           element={
             <RequireAuth>
               <GameRoom />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/puzzles"
-          element={
-            <RequireAuth>
-              <PuzzleMode />
             </RequireAuth>
           }
         />

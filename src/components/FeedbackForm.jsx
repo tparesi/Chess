@@ -1,13 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { submitFeedback } from "../lib/games.js";
+import { SummitBadge } from "./SummitBadge.jsx";
 import {
-  btnStyle,
   cardStyle,
+  errorBoxStyle,
+  ghostBtnStyle,
   inputStyle,
+  labelStyle,
   primaryBtnStyle,
-  screenStyle,
+  successBoxStyle,
 } from "./ui.js";
+
+const CATEGORIES = [
+  { id: "feature", label: "Feature", emoji: "✨" },
+  { id: "bug", label: "Bug", emoji: "🐞" },
+  { id: "other", label: "Other", emoji: "💭" },
+];
 
 export function FeedbackForm() {
   const navigate = useNavigate();
@@ -34,114 +43,107 @@ export function FeedbackForm() {
   };
 
   return (
-    <div style={screenStyle}>
-      <div style={{ maxWidth: 460, width: "100%" }}>
-        <button onClick={() => navigate("/menu")} style={{ ...btnStyle, marginBottom: 16 }}>
-          ← Back
-        </button>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        padding: "32px 20px 64px",
+      }}
+    >
+      <div style={{ maxWidth: 520, width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 28,
+          }}
+        >
+          <SummitBadge size="header" showWordmark />
+          <button onClick={() => navigate("/menu")} style={ghostBtnStyle}>
+            ← Back
+          </button>
+        </div>
+
         <h2
           style={{
-            fontFamily: "'Libre Baskerville',serif",
-            fontSize: 22,
-            color: "#e7e5e4",
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-lg)",
+            fontWeight: 700,
+            color: "var(--text-primary)",
             margin: "0 0 4px",
-            textAlign: "center",
+            letterSpacing: "-0.02em",
+            fontVariationSettings: '"SOFT" 30, "opsz" 144',
           }}
         >
           Tell me what to build next
         </h2>
-        <p style={{ color: "#78716c", fontSize: 12, textAlign: "center", margin: "0 0 16px" }}>
-          What would make the game more fun? What's broken?
+        <p
+          style={{
+            color: "var(--text-secondary)",
+            fontSize: "var(--text-sm)",
+            margin: "0 0 20px",
+          }}
+        >
+          What would make the game more fun? What's broken? Every note goes straight
+          to me.
         </p>
 
         {done && (
-          <div
-            style={{
-              background: "#14532d",
-              border: "1px solid #22c55e",
-              borderRadius: 6,
-              padding: "10px 14px",
-              color: "#bbf7d0",
-              fontSize: 13,
-              marginBottom: 12,
-              textAlign: "center",
-            }}
-          >
+          <div style={{ ...successBoxStyle, marginBottom: 16 }}>
             Thanks! I got your note. More?
           </div>
         )}
 
-        {err && (
-          <div
-            style={{
-              background: "#7f1d1d",
-              border: "1px solid #dc2626",
-              color: "#fecaca",
-              fontSize: 12,
-              padding: 10,
-              borderRadius: 6,
-              marginBottom: 12,
-            }}
-          >
-            {err}
-          </div>
-        )}
+        {err && <div style={{ ...errorBoxStyle, marginBottom: 16 }}>{err}</div>}
 
-        <form onSubmit={submit} style={{ ...cardStyle }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: 10,
-              color: "#78716c",
-              textTransform: "uppercase",
-              letterSpacing: ".08em",
-              marginBottom: 4,
-            }}
-          >
-            Type
-          </label>
-          <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-            {[
-              { id: "feature", label: "Feature" },
-              { id: "bug", label: "Bug" },
-              { id: "other", label: "Other" },
-            ].map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setCategory(c.id)}
-                style={{
-                  ...btnStyle,
-                  padding: "6px 12px",
-                  background: category === c.id ? "#22c55e" : "none",
-                  color: category === c.id ? "#fff" : "#ccc",
-                  border: category === c.id ? "none" : "1px solid #555",
-                }}
-              >
-                {c.label}
-              </button>
-            ))}
+        <form onSubmit={submit} style={cardStyle}>
+          <label style={labelStyle}>Type</label>
+          <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+            {CATEGORIES.map((c) => {
+              const active = category === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCategory(c.id)}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: "var(--radius-pill)",
+                    border: `1.5px solid ${active ? "var(--primary)" : "var(--border)"}`,
+                    background: active ? "var(--primary-tint)" : "var(--bg-raised)",
+                    color: active ? "var(--primary)" : "var(--text-secondary)",
+                    cursor: "pointer",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    fontFamily: "var(--font-body)",
+                    transition: "all var(--dur) var(--ease)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <span>{c.emoji}</span>
+                  {c.label}
+                </button>
+              );
+            })}
           </div>
 
-          <label
-            style={{
-              display: "block",
-              fontSize: 10,
-              color: "#78716c",
-              textTransform: "uppercase",
-              letterSpacing: ".08em",
-              marginBottom: 4,
-            }}
-          >
-            Your idea
-          </label>
+          <label style={labelStyle}>Your idea</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             required
             rows={5}
-            placeholder="Can we have a Minecraft theme? Or a timer? Or a chat with friends?"
-            style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+            placeholder="Can we have a Minecraft theme? Or a timer? Or a way to chat with friends?"
+            style={{
+              ...inputStyle,
+              resize: "vertical",
+              minHeight: 120,
+              fontFamily: "var(--font-body)",
+            }}
           />
 
           <button
@@ -150,12 +152,13 @@ export function FeedbackForm() {
             style={{
               ...primaryBtnStyle,
               width: "100%",
-              padding: 10,
-              marginTop: 12,
+              padding: "14px 20px",
+              marginTop: 16,
+              fontSize: "var(--text-base)",
               opacity: busy || !body.trim() ? 0.6 : 1,
             }}
           >
-            {busy ? "Sending…" : "Send"}
+            {busy ? "Sending…" : "Send feedback"}
           </button>
         </form>
       </div>
