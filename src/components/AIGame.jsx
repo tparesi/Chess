@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   cloneBoard,
   colorOf,
-  FILES,
   INIT,
   INITIAL_CASTLING,
 } from "../chess/board.js";
@@ -13,6 +12,7 @@ import {
   legalMoves,
 } from "../chess/moves.js";
 import { aiMove } from "../chess/ai.js";
+import { moveToSAN } from "../chess/san.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { useProfile } from "../hooks/useProfile.js";
 import { recordAiMatch } from "../lib/games.js";
@@ -152,7 +152,14 @@ export function AIGame() {
       const hasMove = hasLegalMove(nb, nextTurn, nextEP, nextCastling);
       const status = !hasMove ? (inCheck ? "checkmate" : "stalemate") : inCheck ? "check" : null;
 
-      const moveSAN = (type !== "P" ? type : "") + FILES[tc] + (8 - tr);
+      // Proper SAN from the PRE-move board, so captures/disambiguation work.
+      const moveSAN = moveToSAN(
+        board,
+        [sr, sc],
+        [tr, tc],
+        { enPassant, castling },
+        promo
+      );
 
       setBoard(nb);
       setCaptured(nextCaptured);

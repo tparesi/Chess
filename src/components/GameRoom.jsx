@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { colorOf, computeCapturedFromBoard, FILES } from "../chess/board.js";
+import { colorOf, computeCapturedFromBoard } from "../chess/board.js";
 import {
   hasLegalMove,
   isInCheck,
   legalMoves,
   simulateMove,
 } from "../chess/moves.js";
+import { moveToSAN } from "../chess/san.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { finalizePvpMatch, getGame, submitMove } from "../lib/games.js";
 import { supabase } from "../lib/supabase.js";
@@ -147,11 +148,15 @@ export function GameRoom() {
         winner = inCheck ? myColor : "draw";
       }
 
-      const movingPiece = game.board[from[0]][from[1]];
-      const moveSAN =
-        (movingPiece.toUpperCase() !== "P" ? movingPiece.toUpperCase() : "") +
-        FILES[to[1]] +
-        (8 - to[0]);
+      // Proper SAN — uses the PRE-move board so captures/disambiguation/
+      // check/mate suffixes work.
+      const moveSAN = moveToSAN(
+        game.board,
+        from,
+        to,
+        { enPassant: game.en_passant, castling: game.castling },
+        promo
+      );
 
       try {
         await submitMove(
