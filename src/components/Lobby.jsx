@@ -34,6 +34,10 @@ export function Lobby() {
 
   useEffect(() => {
     reload();
+
+    // Primary: Realtime subscription — instant updates when anyone creates,
+    // joins, or finishes a game. Log the status so we can diagnose if the
+    // channel fails to subscribe in the hosted environment.
     const channel = supabase
       .channel("lobby")
       .on(
@@ -41,8 +45,17 @@ export function Lobby() {
         { event: "*", schema: "public", table: "games" },
         () => reload()
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.error("[lobby realtime] error", err);
+        else console.log("[lobby realtime] status:", status);
+      });
+
+    // Fallback: poll every 5 seconds in case Realtime is down or the
+    // subscription drops. Cheap — just one select of at most 20 rows.
+    const pollId = setInterval(reload, 5000);
+
     return () => {
+      clearInterval(pollId);
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
