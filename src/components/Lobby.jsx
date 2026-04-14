@@ -244,9 +244,9 @@ export function Lobby() {
                           ELO {opp?.elo ?? 1000}
                         </span>
                       </span>
-                      <span style={menuDescStyle}>
-                        {yourTurn ? "Your turn — tap to play" : "Waiting on opponent"}
-                      </span>
+                      {yourTurn && (
+                        <span style={menuDescStyle}>Your turn — tap to play</span>
+                      )}
                     </div>
                     <span
                       style={{
