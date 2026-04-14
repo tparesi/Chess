@@ -28,6 +28,8 @@ export function GameRoom() {
   const [validMoves, setValidMoves] = useState([]);
   const [pendingPromo, setPendingPromo] = useState(null);
   const [overlay, setOverlay] = useState(null);
+  const [captureAnim, setCaptureAnim] = useState(null);
+  const prevBoardRef = useRef(null);
   const finalizedRef = useRef(false);
 
   const myColor = useMemo(() => {
@@ -64,6 +66,52 @@ export function GameRoom() {
       supabase.removeChannel(channel);
     };
   }, [gameId]);
+
+  // Detect captures by diffing the incoming board against the previous one.
+  // A capture shows up as a square whose piece color flipped (enemy piece
+  // replaced by one of our color) or as an en-passant: enemy pawn vanished
+  // from an adjacent square without being the move origin.
+  useEffect(() => {
+    if (!game) return;
+    const nextBoard = game.board;
+    const prev = prevBoardRef.current;
+    prevBoardRef.current = nextBoard;
+    if (!prev) return;
+
+    // Find standard capture: same square, color flipped
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const before = prev[r][c];
+        const after = nextBoard[r][c];
+        if (!before || !after) continue;
+        const beforeWhite = before === before.toUpperCase();
+        const afterWhite = after === after.toUpperCase();
+        if (beforeWhite !== afterWhite) {
+          setCaptureAnim({ pieceKey: before, row: r, col: c });
+          return;
+        }
+      }
+    }
+    // En-passant: a pawn vanished from a square that isn't the move origin.
+    // We don't know the origin easily here, so approximate: any square where
+    // a pawn existed before and is now empty — if more than one, ignore.
+    const vanished = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const before = prev[r][c];
+        const after = nextBoard[r][c];
+        if (before && !after && before.toUpperCase() === "P") {
+          vanished.push({ pieceKey: before, row: r, col: c });
+        }
+      }
+    }
+    if (vanished.length === 2) {
+      // Exactly one mover + one captured. The captured is the one still on
+      // an interior rank (4th/5th from either side).
+      const ep = vanished.find((v) => v.row === 3 || v.row === 4);
+      if (ep) setCaptureAnim(ep);
+    }
+  }, [game?.board]);
 
   // Detect game end and finalize
   useEffect(() => {
@@ -274,9 +322,9 @@ export function GameRoom() {
             lastMove={null}
             turn={game.turn}
             inCheck={inCheck}
-            captureAnim={null}
+            captureAnim={captureAnim}
             onSquareClick={handleClick}
-            onCaptureAnimDone={() => {}}
+            onCaptureAnimDone={() => setCaptureAnim(null)}
             disabled={!isMyTurn || game.status !== "active"}
             flipped={flipped}
           />
