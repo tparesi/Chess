@@ -72,99 +72,98 @@ export function AIGame() {
 
   const execMove = useCallback(
     (sr, sc, tr, tc, promo) => {
-      setBoard((prevBoard) => {
-        const nb = cloneBoard(prevBoard);
-        const movingPiece = nb[sr][sc];
-        const color = colorOf(movingPiece);
-        const type = movingPiece.toUpperCase();
-        const captured = nb[tr][tc];
-        const isEP =
-          type === "P" && enPassant && tr === enPassant[0] && tc === enPassant[1];
+      const nb = cloneBoard(board);
+      const movingPiece = nb[sr][sc];
+      const color = colorOf(movingPiece);
+      const type = movingPiece.toUpperCase();
+      const capturedPiece = nb[tr][tc];
+      const isEP =
+        type === "P" && enPassant && tr === enPassant[0] && tc === enPassant[1];
 
-        let animInit = null;
-        if (captured) {
-          animInit = { pieceKey: captured, row: tr, col: tc };
-          setCaptured((prev) => ({
-            ...prev,
-            [color]: [...prev[color], captured],
-          }));
+      const nextCaptured = {
+        white: [...captured.white],
+        black: [...captured.black],
+      };
+
+      let animInit = null;
+      if (capturedPiece) {
+        animInit = { pieceKey: capturedPiece, row: tr, col: tc };
+        nextCaptured[color].push(capturedPiece);
+      }
+      if (isEP) {
+        const capRow = color === "white" ? tr + 1 : tr - 1;
+        const epPiece = nb[capRow][tc];
+        animInit = { pieceKey: epPiece, row: capRow, col: tc };
+        nextCaptured[color].push(epPiece);
+        nb[capRow][tc] = null;
+      }
+
+      nb[tr][tc] = promo
+        ? color === "white"
+          ? promo.toUpperCase()
+          : promo.toLowerCase()
+        : movingPiece;
+      nb[sr][sc] = null;
+
+      if (type === "K" && Math.abs(tc - sc) === 2) {
+        const backRank = color === "white" ? 7 : 0;
+        if (tc === 6) {
+          nb[backRank][5] = nb[backRank][7];
+          nb[backRank][7] = null;
         }
-        if (isEP) {
-          const capRow = color === "white" ? tr + 1 : tr - 1;
-          animInit = { pieceKey: nb[capRow][tc], row: capRow, col: tc };
-          setCaptured((prev) => ({
-            ...prev,
-            [color]: [...prev[color], nb[capRow][tc]],
-          }));
-          nb[capRow][tc] = null;
+        if (tc === 2) {
+          nb[backRank][3] = nb[backRank][0];
+          nb[backRank][0] = null;
         }
-        nb[tr][tc] = promo
-          ? color === "white"
-            ? promo.toUpperCase()
-            : promo.toLowerCase()
-          : movingPiece;
-        nb[sr][sc] = null;
+      }
 
-        if (type === "K" && Math.abs(tc - sc) === 2) {
-          const backRank = color === "white" ? 7 : 0;
-          if (tc === 6) {
-            nb[backRank][5] = nb[backRank][7];
-            nb[backRank][7] = null;
-          }
-          if (tc === 2) {
-            nb[backRank][3] = nb[backRank][0];
-            nb[backRank][0] = null;
-          }
+      let nextEP = null;
+      if (type === "P" && Math.abs(tr - sr) === 2) {
+        nextEP = [(sr + tr) / 2, sc];
+      }
+
+      const nextCastling = { ...castling };
+      if (type === "K") {
+        if (color === "white") {
+          nextCastling.K = false;
+          nextCastling.Q = false;
+        } else {
+          nextCastling.k = false;
+          nextCastling.q = false;
         }
+      }
+      if (type === "R") {
+        if (sr === 7 && sc === 0) nextCastling.Q = false;
+        if (sr === 7 && sc === 7) nextCastling.K = false;
+        if (sr === 0 && sc === 0) nextCastling.q = false;
+        if (sr === 0 && sc === 7) nextCastling.k = false;
+      }
+      if (tr === 0 && tc === 0) nextCastling.q = false;
+      if (tr === 0 && tc === 7) nextCastling.k = false;
+      if (tr === 7 && tc === 0) nextCastling.Q = false;
+      if (tr === 7 && tc === 7) nextCastling.K = false;
 
-        let nextEP = null;
-        if (type === "P" && Math.abs(tr - sr) === 2) {
-          nextEP = [(sr + tr) / 2, sc];
-        }
+      const nextTurn = color === "white" ? "black" : "white";
+      const inCheck = isInCheck(nb, nextTurn);
+      const hasMove = hasLegalMove(nb, nextTurn, nextEP, nextCastling);
+      const status = !hasMove ? (inCheck ? "checkmate" : "stalemate") : inCheck ? "check" : null;
 
-        const nextCastling = { ...castling };
-        if (type === "K") {
-          if (color === "white") {
-            nextCastling.K = false;
-            nextCastling.Q = false;
-          } else {
-            nextCastling.k = false;
-            nextCastling.q = false;
-          }
-        }
-        if (type === "R") {
-          if (sr === 7 && sc === 0) nextCastling.Q = false;
-          if (sr === 7 && sc === 7) nextCastling.K = false;
-          if (sr === 0 && sc === 0) nextCastling.q = false;
-          if (sr === 0 && sc === 7) nextCastling.k = false;
-        }
-        if (tr === 0 && tc === 0) nextCastling.q = false;
-        if (tr === 0 && tc === 7) nextCastling.k = false;
-        if (tr === 7 && tc === 0) nextCastling.Q = false;
-        if (tr === 7 && tc === 7) nextCastling.K = false;
+      const moveSAN = (type !== "P" ? type : "") + FILES[tc] + (8 - tr);
 
-        const nextTurn = color === "white" ? "black" : "white";
-        const inCheck = isInCheck(nb, nextTurn);
-        const hasMove = hasLegalMove(nb, nextTurn, nextEP, nextCastling);
-        const status = !hasMove ? (inCheck ? "checkmate" : "stalemate") : inCheck ? "check" : null;
-
-        const moveSAN = (type !== "P" ? type : "") + FILES[tc] + (8 - tr);
-
-        setTurn(nextTurn);
-        setSelected(null);
-        setValidMoves([]);
-        setEnPassant(nextEP);
-        setCastling(nextCastling);
-        setLastMove({ from: [sr, sc], to: [tr, tc] });
-        setHistory((prev) => [...prev, moveSAN]);
-        setGameStatus(status);
-        setPendingPromo(null);
-        if (animInit) setCaptureAnim(animInit);
-
-        return nb;
-      });
+      setBoard(nb);
+      setCaptured(nextCaptured);
+      setTurn(nextTurn);
+      setSelected(null);
+      setValidMoves([]);
+      setEnPassant(nextEP);
+      setCastling(nextCastling);
+      setLastMove({ from: [sr, sc], to: [tr, tc] });
+      setHistory((prev) => [...prev, moveSAN]);
+      setGameStatus(status);
+      setPendingPromo(null);
+      if (animInit) setCaptureAnim(animInit);
     },
-    [enPassant, castling, theme]
+    [board, captured, enPassant, castling]
   );
 
   const handleClick = useCallback(
