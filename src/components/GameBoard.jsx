@@ -4,6 +4,15 @@ import { CheckFlash } from "./CheckFlash.jsx";
 
 const SQ = "min(10vw,64px)";
 
+// Map a visual grid position (gridR, gridC = 0..7) to the logical board
+// coordinate. When `flipped` is true (black's POV) BOTH axes mirror, so
+// the h-file ends up on black's left and white's pieces sit at the
+// bottom of their screen — matching a real flipped board.
+const logicalCoord = (gridR, gridC, flipped) =>
+  flipped ? [7 - gridR, 7 - gridC] : [gridR, gridC];
+const gridCoord = (logicalR, logicalC, flipped) =>
+  flipped ? [7 - logicalR, 7 - logicalC] : [logicalR, logicalC];
+
 export function GameBoard({
   board,
   theme,
@@ -19,11 +28,19 @@ export function GameBoard({
   flipped = false,
 }) {
   const kingPos = inCheck ? findKing(board, turn) : null;
+  const kingGrid = kingPos ? gridCoord(kingPos[0], kingPos[1], flipped) : null;
+  const animGrid = captureAnim
+    ? gridCoord(captureAnim.row, captureAnim.col, flipped)
+    : null;
 
-  const renderRow = (rowIdx) =>
-    board[rowIdx].map((piece, colIdx) => {
-      const r = rowIdx;
-      const c = colIdx;
+  // Build the 64 squares in grid order (top-left → bottom-right of what the
+  // player sees). Each cell derives its logical coord for piece lookup and
+  // click wiring.
+  const squares = [];
+  for (let gridR = 0; gridR < 8; gridR++) {
+    for (let gridC = 0; gridC < 8; gridC++) {
+      const [r, c] = logicalCoord(gridR, gridC, flipped);
+      const piece = board[r][c];
       const lightSquare = (r + c) % 2 === 0;
       const isSel = selected && selected[0] === r && selected[1] === c;
       const isValidTarget = validMoves.some(([vr, vc]) => vr === r && vc === c);
@@ -41,9 +58,9 @@ export function GameBoard({
         !captureAnim &&
         ((piece && colorOf(piece) === turn) || isValidTarget);
 
-      return (
+      squares.push(
         <div
-          key={`${r}-${c}`}
+          key={`${gridR}-${gridC}`}
           onClick={() => !disabled && !captureAnim && onSquareClick(r, c)}
           style={{
             width: SQ,
@@ -61,7 +78,7 @@ export function GameBoard({
               : "repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 6px)",
           }}
         >
-          {c === 0 && (
+          {gridC === 0 && (
             <span
               style={{
                 position: "absolute",
@@ -74,10 +91,10 @@ export function GameBoard({
                 color: theme.boardColors.coord,
               }}
             >
-              {flipped ? r + 1 : 8 - r}
+              {8 - r}
             </span>
           )}
-          {r === 7 && (
+          {gridR === 7 && (
             <span
               style={{
                 position: "absolute",
@@ -90,7 +107,7 @@ export function GameBoard({
                 color: theme.boardColors.coord,
               }}
             >
-              {flipped ? FILES[7 - c] : FILES[c]}
+              {FILES[c]}
             </span>
           )}
           {isValidTarget && !piece && (
@@ -132,9 +149,8 @@ export function GameBoard({
           )}
         </div>
       );
-    });
-
-  const rowOrder = flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+    }
+  }
 
   return (
     <div
@@ -153,18 +169,18 @@ export function GameBoard({
           gridTemplateRows: `repeat(8, ${SQ})`,
         }}
       >
-        {rowOrder.flatMap((r) => renderRow(r))}
+        {squares}
       </div>
-      {captureAnim && (
+      {captureAnim && animGrid && (
         <CaptureAnim
           pieceKey={captureAnim.pieceKey}
           theme={theme}
-          row={captureAnim.row}
-          col={captureAnim.col}
+          row={animGrid[0]}
+          col={animGrid[1]}
           onDone={onCaptureAnimDone}
         />
       )}
-      {kingPos && inCheck && <CheckFlash row={kingPos[0]} col={kingPos[1]} />}
+      {kingGrid && inCheck && <CheckFlash row={kingGrid[0]} col={kingGrid[1]} />}
     </div>
   );
 }
