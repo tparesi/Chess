@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { colorOf, FILES } from "../chess/board.js";
+import { colorOf, computeCapturedFromBoard, FILES } from "../chess/board.js";
 import {
   hasLegalMove,
   isInCheck,
@@ -14,7 +14,7 @@ import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
 import { GameBoard, SQ } from "./GameBoard.jsx";
 import { PromotionDialog } from "./PromotionDialog.jsx";
-import { btnStyle, cardStyle } from "./ui.js";
+import { btnStyle, cardStyle, primaryBtnStyle, sortCapturedByValue } from "./ui.js";
 
 export function GameRoom() {
   const { id: gameId } = useParams();
@@ -29,8 +29,14 @@ export function GameRoom() {
   const [pendingPromo, setPendingPromo] = useState(null);
   const [overlay, setOverlay] = useState(null);
   const [captureAnim, setCaptureAnim] = useState(null);
+  const [confirmForfeit, setConfirmForfeit] = useState(false);
   const prevBoardRef = useRef(null);
   const finalizedRef = useRef(false);
+
+  const captured = useMemo(
+    () => (game?.board ? computeCapturedFromBoard(game.board) : { white: [], black: [] }),
+    [game?.board]
+  );
 
   const myColor = useMemo(() => {
     if (!game || !user) return null;
@@ -198,6 +204,7 @@ export function GameRoom() {
   const handleForfeit = async () => {
     if (!game || !myColor) return;
     const winner = myColor === "white" ? "black" : "white";
+    setConfirmForfeit(false);
     try {
       await submitMove(
         gameId,
@@ -295,23 +302,35 @@ export function GameRoom() {
                 Lobby
               </button>
               {myColor && game.status === "active" && (
-                <button onClick={handleForfeit} style={{ ...btnStyle, color: "#fecaca" }}>
+                <button onClick={() => setConfirmForfeit(true)} style={{ ...btnStyle, color: "#fecaca" }}>
                   Forfeit
                 </button>
               )}
             </div>
           </div>
 
+          {/* Top strip belongs to the opponent (always visually above you).
+              It shows the pieces the opponent has captured from you. */}
           <div
             style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               width: `calc(${SQ} * 8)`,
-              padding: "4px 8px",
+              minHeight: 22,
               fontSize: 11,
               color: "#a8a29e",
-              textAlign: "center",
+              gap: 6,
             }}
           >
-            {flipped ? myName : opponentName} ({flipped ? "↓" : "↑"})
+            <span>{opponentName}</span>
+            <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+              {sortCapturedByValue(flipped ? captured.white : captured.black).map((p, i) => (
+                <span key={i} style={{ opacity: 0.85, display: "inline-flex" }}>
+                  {theme.renderPiece(p, { size: "18px" })}
+                </span>
+              ))}
+            </div>
           </div>
 
           <GameBoard
@@ -329,16 +348,27 @@ export function GameRoom() {
             flipped={flipped}
           />
 
+          {/* Bottom strip is yours — pieces you've captured from the opponent. */}
           <div
             style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               width: `calc(${SQ} * 8)`,
-              padding: "4px 8px",
+              minHeight: 22,
               fontSize: 11,
               color: "#a8a29e",
-              textAlign: "center",
+              gap: 6,
             }}
           >
-            {flipped ? opponentName : myName} ({flipped ? "↑" : "↓"})
+            <span>{myName}</span>
+            <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+              {sortCapturedByValue(flipped ? captured.black : captured.white).map((p, i) => (
+                <span key={i} style={{ opacity: 0.85, display: "inline-flex" }}>
+                  {theme.renderPiece(p, { size: "18px" })}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div
@@ -444,6 +474,77 @@ export function GameRoom() {
           onReplay={null}
           onMenu={() => navigate("/menu")}
         />
+      )}
+
+      {confirmForfeit && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 150,
+            animation: "fadeIn .2s ease-out",
+          }}
+          onClick={() => setConfirmForfeit(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#292118",
+              border: "1px solid #5c4a2e",
+              borderRadius: 10,
+              padding: "24px 28px",
+              maxWidth: 360,
+              width: "88%",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 40, marginBottom: 8 }}>🏳️</div>
+            <h3
+              style={{
+                fontFamily: "'Libre Baskerville',serif",
+                fontSize: 18,
+                color: "#fbbf24",
+                margin: "0 0 8px",
+              }}
+            >
+              Forfeit this game?
+            </h3>
+            <p
+              style={{
+                fontSize: 12,
+                color: "#d4d4d8",
+                margin: "0 0 18px",
+                lineHeight: 1.5,
+              }}
+            >
+              This counts as a <strong style={{ color: "#ef4444" }}>loss</strong> and
+              will <strong style={{ color: "#ef4444" }}>lower your ELO</strong>. Your
+              opponent will be declared the winner.
+            </p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <button
+                onClick={() => setConfirmForfeit(false)}
+                style={{ ...btnStyle, padding: "8px 20px" }}
+              >
+                Keep playing
+              </button>
+              <button
+                onClick={handleForfeit}
+                style={{
+                  ...primaryBtnStyle,
+                  background: "#dc2626",
+                  padding: "8px 20px",
+                }}
+              >
+                Yes, forfeit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

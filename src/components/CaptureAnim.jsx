@@ -16,12 +16,21 @@ export function CaptureAnim({ pieceKey, theme, row, col, onDone }) {
     return () => timers.forEach(clearTimeout);
   }, [onDone]);
 
+  // Direction to deliver the rescued piece:
+  // - Captured WHITE piece (uppercase): black captured it → top strip → drive UP
+  // - Captured BLACK piece (lowercase): white captured it → bottom strip → drive DOWN
+  const deliverUp = pieceKey === pieceKey.toUpperCase();
+
   const translate =
     phase === 0
       ? `translateX(${(col - 3) * 100}%)`
       : phase === 1
         ? `translateX(${col * 100}%)`
-        : `translateX(${(col + 10) * 100}%)`;
+        : // Phase 3: drive vertically off the board toward the captured strip.
+          // 800% = 8 square-heights = exactly one board height, guaranteeing
+          // the ambulance clears the edge regardless of which row the capture
+          // happened on.
+          `translateX(${col * 100}%) translateY(${deliverUp ? -800 : 800}%)`;
 
   return (
     <div

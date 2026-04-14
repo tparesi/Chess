@@ -38,3 +38,34 @@ export function findKing(board, color) {
 export function squareToAlgebraic(row, col) {
   return FILES[col] + (8 - row);
 }
+
+// Derive captured pieces from a live board by comparing against the starting
+// position. Returns { white: [], black: [] } where white = pieces white has
+// captured (lowercase letters = black pieces) and black = pieces black has
+// captured (uppercase letters = white pieces) — same shape as the local state
+// in AIGame. `Math.max(0, ...)` prevents promoted pieces from producing
+// negative counts (a promoted queen shows as "the pawn was captured", which
+// is semi-correct for display).
+const INITIAL_PIECE_COUNTS = { Q: 1, R: 2, B: 2, N: 2, P: 8 };
+
+export function computeCapturedFromBoard(board) {
+  const whiteOnBoard = { Q: 0, R: 0, B: 0, N: 0, P: 0 };
+  const blackOnBoard = { Q: 0, R: 0, B: 0, N: 0, P: 0 };
+  for (const row of board) {
+    for (const p of row) {
+      if (!p) continue;
+      const type = p.toUpperCase();
+      if (type === "K") continue;
+      if (isWhite(p)) whiteOnBoard[type] += 1;
+      else blackOnBoard[type] += 1;
+    }
+  }
+  const captured = { white: [], black: [] };
+  for (const type of ["Q", "R", "B", "N", "P"]) {
+    const whiteLost = Math.max(0, INITIAL_PIECE_COUNTS[type] - whiteOnBoard[type]);
+    const blackLost = Math.max(0, INITIAL_PIECE_COUNTS[type] - blackOnBoard[type]);
+    for (let i = 0; i < whiteLost; i++) captured.black.push(type);
+    for (let i = 0; i < blackLost; i++) captured.white.push(type.toLowerCase());
+  }
+  return captured;
+}
