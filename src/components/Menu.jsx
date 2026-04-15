@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
+import { usePreferences } from "../hooks/usePreferences.js";
 import { useProfile } from "../hooks/useProfile.js";
 import { signOut } from "../lib/auth.js";
 import { SummitBadge } from "./SummitBadge.jsx";
@@ -27,6 +28,7 @@ export function Menu() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useProfile(user?.id);
+  const { prefs, setPref } = usePreferences();
 
   const handleSignOut = async () => {
     await signOut();
@@ -107,6 +109,66 @@ export function Menu() {
             <Stat label="ELO" value={profile?.elo ?? "—"} accent />
             <Stat label="Wins" value={profile?.wins ?? 0} positive />
             <Stat label="Losses" value={profile?.losses ?? 0} />
+          </div>
+
+          {/* Coaching toggle */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 18,
+              paddingTop: 14,
+              borderTop: "1px solid var(--border)",
+              gap: 12,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 600,
+                  fontSize: "var(--text-sm)",
+                  color: "var(--text-primary)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Coaching tips
+              </div>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
+                Show the Coach panel and the Get Help button in games.
+              </div>
+            </div>
+            <button
+              onClick={() => setPref("coachEnabled", !prefs.coachEnabled)}
+              role="switch"
+              aria-checked={prefs.coachEnabled}
+              style={{
+                width: 46,
+                height: 26,
+                borderRadius: "var(--radius-pill)",
+                border: "1.5px solid var(--border)",
+                background: prefs.coachEnabled ? "var(--primary)" : "var(--bg-sunk)",
+                cursor: "pointer",
+                position: "relative",
+                transition: "all var(--dur) var(--ease)",
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 1,
+                  left: prefs.coachEnabled ? 22 : 2,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  boxShadow: "var(--shadow-sm)",
+                  transition: "left var(--dur) var(--ease)",
+                }}
+              />
+            </button>
           </div>
         </div>
 

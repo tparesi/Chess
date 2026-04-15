@@ -8,11 +8,14 @@ import {
   simulateMove,
 } from "../chess/moves.js";
 import { moveToSAN } from "../chess/san.js";
+import { analyzeLastMove, inferMoveFromDiff } from "../chess/coach.js";
 import { useAuth } from "../hooks/useAuth.js";
+import { usePreferences } from "../hooks/usePreferences.js";
 import { finalizePvpMatch, getGame, submitMove } from "../lib/games.js";
 import { supabase } from "../lib/supabase.js";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
+import { CoachPanel } from "./CoachPanel.jsx";
 import { GameBoard, SQ } from "./GameBoard.jsx";
 import { PromotionDialog } from "./PromotionDialog.jsx";
 import { CapturedStrip } from "./CapturedStrip.jsx";
@@ -33,8 +36,13 @@ export function GameRoom() {
   const [overlay, setOverlay] = useState(null);
   const [captureAnim, setCaptureAnim] = useState(null);
   const [confirmForfeit, setConfirmForfeit] = useState(false);
+  const [latestTip, setLatestTip] = useState(null);
+  const recentTipIdsRef = useRef([]);
   const prevBoardRef = useRef(null);
+  const prev2BoardRef = useRef(null);
   const finalizedRef = useRef(false);
+  const { prefs } = usePreferences();
+  const coachEnabled = prefs.coachEnabled;
 
   const captured = useMemo(
     () => (game?.board ? computeCapturedFromBoard(game.board) : { white: [], black: [] }),
@@ -121,6 +129,43 @@ export function GameRoom() {
       if (ep) setCaptureAnim(ep);
     }
   }, [game?.board]);
+
+  // Observational coach — only for the player's own moves. After the
+  // player moves, the server flips `game.turn` to the opponent; we detect
+  // "my move just happened" by checking that the new turn is NOT mine. We
+  // diff the board to infer the primary move (from/to/captured) and run
+  // the analyzer. Skips opponent moves so tips stay relevant to the kid.
+  useEffect(() => {
+    if (!coachEnabled || !game || !myColor) return;
+    const prevBoard = prev2BoardRef.current;
+    prev2BoardRef.current = game.board;
+    if (!prevBoard) return;
+    // Skip if it wasn't our move that caused this update
+    if (game.turn === myColor) return;
+
+    const move = inferMoveFromDiff(prevBoard, game.board, myColor);
+    if (!move.from || !move.to) return;
+
+    const tip = analyzeLastMove(
+      { board: prevBoard },
+      { board: game.board },
+      {
+        from: move.from,
+        to: move.to,
+        piece: move.piece,
+        capturedPiece: move.capturedPiece,
+        moveNumber: Math.floor((game.move_history?.length ?? 0) / 2) + 1,
+        playerColor: myColor,
+        theme,
+        recentTipIds: recentTipIdsRef.current,
+      }
+    );
+    if (tip) {
+      setLatestTip(tip);
+      recentTipIdsRef.current = [tip.id, ...recentTipIdsRef.current.slice(0, 2)];
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.board, coachEnabled, myColor]);
 
   // Detect game end and finalize
   useEffect(() => {
@@ -452,6 +497,7 @@ export function GameRoom() {
                 </div>
               ))}
             </div>
+            {coachEnabled && <CoachPanel tip={latestTip} />}
           </div>
         </div>
       </div>

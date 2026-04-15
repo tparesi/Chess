@@ -13,12 +13,16 @@ import {
 } from "../chess/moves.js";
 import { aiMove } from "../chess/ai.js";
 import { moveToSAN } from "../chess/san.js";
+import { analyzeCurrentPosition, analyzeLastMove } from "../chess/coach.js";
 import { useAuth } from "../hooks/useAuth.js";
+import { usePreferences } from "../hooks/usePreferences.js";
 import { useProfile } from "../hooks/useProfile.js";
 import { recordAiMatch } from "../lib/games.js";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
+import { CoachPanel } from "./CoachPanel.jsx";
 import { GameBoard, SQ } from "./GameBoard.jsx";
+import { GetHelpButton } from "./GetHelpButton.jsx";
 import { PromotionDialog } from "./PromotionDialog.jsx";
 import { CapturedStrip } from "./CapturedStrip.jsx";
 import { SummitBadge } from "./SummitBadge.jsx";
@@ -49,7 +53,11 @@ export function AIGame() {
   const [captureAnim, setCaptureAnim] = useState(null);
   const [aiThinking, setAiThinking] = useState(false);
   const [overlay, setOverlay] = useState(null);
+  const [latestTip, setLatestTip] = useState(null);
+  const recentTipIdsRef = useRef([]);
   const movesScrollRef = useRef(null);
+  const { prefs } = usePreferences();
+  const coachEnabled = prefs.coachEnabled;
 
   useEffect(() => {
     if (movesScrollRef.current) {
@@ -72,6 +80,8 @@ export function AIGame() {
     setCaptureAnim(null);
     setAiThinking(false);
     setOverlay(null);
+    setLatestTip(null);
+    recentTipIdsRef.current = [];
   }, []);
 
   const execMove = useCallback(
@@ -173,8 +183,35 @@ export function AIGame() {
       setGameStatus(status);
       setPendingPromo(null);
       if (animInit) setCaptureAnim(animInit);
+
+      // Observational coaching — only for the kid's moves (white), never
+      // for the AI's replies. Analyzes what just happened and shows an
+      // encouragement or neutral tip in the sidebar.
+      if (color === "white") {
+        const tip = analyzeLastMove(
+          { board, captured },
+          { board: nb, captured: nextCaptured },
+          {
+            from: [sr, sc],
+            to: [tr, tc],
+            piece: movingPiece,
+            capturedPiece: capturedPiece || (isEP ? (color === "white" ? "p" : "P") : null),
+            moveNumber: Math.floor(history.length / 2) + 1,
+            playerColor: "white",
+            theme,
+            recentTipIds: recentTipIdsRef.current,
+          }
+        );
+        if (tip) {
+          setLatestTip(tip);
+          recentTipIdsRef.current = [
+            tip.id,
+            ...recentTipIdsRef.current.slice(0, 2),
+          ];
+        }
+      }
     },
-    [board, captured, enPassant, castling]
+    [board, captured, enPassant, castling, history.length, theme]
   );
 
   const handleClick = useCallback(
@@ -307,7 +344,18 @@ export function AIGame() {
           }}
         >
           <SummitBadge size="header" showWordmark subtitle={`vs AI · ${difficulty}`} />
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {coachEnabled && (
+              <GetHelpButton
+                disabled={turn !== "white" || !!gameStatus || aiThinking}
+                getTip={() =>
+                  analyzeCurrentPosition(
+                    { board, enPassant, castling },
+                    { playerColor: "white", theme }
+                  )
+                }
+              />
+            )}
             <button onClick={reset} style={ghostBtnStyle}>
               Restart
             </button>
@@ -471,6 +519,7 @@ export function AIGame() {
                 </div>
               ))}
             </div>
+            {coachEnabled && <CoachPanel tip={latestTip} />}
             <div
               style={{
                 borderTop: "1px solid var(--border)",
