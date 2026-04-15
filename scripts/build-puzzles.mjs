@@ -264,6 +264,13 @@ async function streamCsv() {
     if (!(nbPlays > 500)) continue;
     if (!Number.isFinite(rating)) continue;
 
+    // Player is always white. Lichess convention: the opponent plays the
+    // first move from the given FEN, then the player plays. So if the FEN
+    // says black-to-move, black blunders first → player is white. Skip
+    // the reverse.
+    const fenTurn = fen.split(" ")[1];
+    if (fenTurn !== "b") continue;
+
     const movesList = movesStr.split(" ");
     if (movesList.length < 2) continue;
     const themes = new Set(themesStr.split(" "));

@@ -332,10 +332,12 @@ export function PuzzleMode() {
                     : "Back to Puzzle Book"}
                 </button>
               ) : (
-                <>
+                // "Show solution" only appears after the player has tried and
+                // failed at least twice. Before that, the only option is to
+                // keep working on it.
+                attempts >= 2 && (
                   <button
                     onClick={() => {
-                      // Skip = reveal solution + mark solved_with_help
                       const remaining = solver.getRemainingPlayerMoves();
                       setFeedback({
                         tone: "shown",
@@ -352,7 +354,7 @@ export function PuzzleMode() {
                   >
                     Show solution
                   </button>
-                </>
+                )
               )}
             </div>
 
