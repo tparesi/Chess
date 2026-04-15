@@ -41,21 +41,25 @@ const DOWNLOAD_URL = "https://database.lichess.org/lichess_db_puzzle.csv.zst";
 // the FIRST matching chapter (in the order below) so chapters don't share
 // puzzles.
 
+// Rating windows climb monotonically so the curriculum never regresses in
+// difficulty between chapters. Within each chapter we sample evenly across
+// the window (see pickEvenlySpaced below) so puzzle 1 of a chapter is near
+// the window's min and the last is near its max.
 const CHAPTERS = [
   {
     id: 1,
     title: "Mate with the queen",
     count: 15,
     ratingMin: 400,
-    ratingMax: 900,
+    ratingMax: 700,
     match: (row) => row.themes.has("mateIn1") && movesQueen(row),
   },
   {
     id: 2,
     title: "Mate with the rook",
     count: 15,
-    ratingMin: 500,
-    ratingMax: 1000,
+    ratingMin: 600,
+    ratingMax: 900,
     match: (row) => row.themes.has("mateIn1") && movesRook(row),
   },
   {
@@ -63,22 +67,22 @@ const CHAPTERS = [
     title: "Sneaky mates in one",
     count: 10,
     ratingMin: 700,
-    ratingMax: 1100,
+    ratingMax: 1000,
     match: (row) => row.themes.has("mateIn1"),
   },
   {
     id: 4,
     title: "Don't lose your pieces",
     count: 15,
-    ratingMin: 500,
-    ratingMax: 1000,
+    ratingMin: 800,
+    ratingMax: 1100,
     match: (row) => row.themes.has("hangingPiece"),
   },
   {
     id: 5,
     title: "The fork",
     count: 15,
-    ratingMin: 700,
+    ratingMin: 900,
     ratingMax: 1200,
     match: (row) => row.themes.has("fork"),
   },
@@ -86,48 +90,48 @@ const CHAPTERS = [
     id: 6,
     title: "The pin",
     count: 15,
-    ratingMin: 800,
-    ratingMax: 1200,
+    ratingMin: 1000,
+    ratingMax: 1300,
     match: (row) => row.themes.has("pin"),
   },
   {
     id: 7,
     title: "The skewer",
     count: 10,
-    ratingMin: 900,
-    ratingMax: 1300,
+    ratingMin: 1050,
+    ratingMax: 1350,
     match: (row) => row.themes.has("skewer"),
   },
   {
     id: 8,
     title: "Surprise attacks",
     count: 10,
-    ratingMin: 900,
-    ratingMax: 1300,
+    ratingMin: 1100,
+    ratingMax: 1400,
     match: (row) => row.themes.has("discoveredAttack"),
   },
   {
     id: 9,
     title: "Back rank mate",
     count: 15,
-    ratingMin: 800,
-    ratingMax: 1300,
+    ratingMin: 1150,
+    ratingMax: 1450,
     match: (row) => row.themes.has("backRankMate"),
   },
   {
     id: 10,
     title: "Mate in two",
     count: 20,
-    ratingMin: 1000,
-    ratingMax: 1500,
+    ratingMin: 1200,
+    ratingMax: 1600,
     match: (row) => row.themes.has("mateIn2"),
   },
   {
     id: 11,
     title: "Endgames that win",
     count: 10,
-    ratingMin: 900,
-    ratingMax: 1300,
+    ratingMin: 1200,
+    ratingMax: 1500,
     match: (row) => row.themes.has("endgame"),
   },
 ];
@@ -183,6 +187,21 @@ function fenToBoard(fen) {
 
 const FILES = "abcdefgh";
 const fileIdx = (ch) => FILES.indexOf(ch);
+
+// Given a sorted-by-rating pool, pick N items spread evenly across it:
+// the first pick is the easiest in the pool, the last is the hardest, and
+// the ones in between are evenly distributed. Gives each chapter a real
+// difficulty climb within itself.
+function pickEvenlySpaced(pool, n) {
+  if (pool.length === 0) return [];
+  if (pool.length <= n) return [...pool];
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const idx = Math.round((i * (pool.length - 1)) / (n - 1));
+    out.push(pool[idx]);
+  }
+  return out;
+}
 
 // ─── Download + decompress ──────────────────────────────────────────────
 
@@ -252,12 +271,11 @@ async function streamCsv() {
     const row = { puzzleId, fen, movesList, rating, themes };
 
     // Allocate to the FIRST matching chapter (by spec order) where the rating
-    // is in the target window AND the chapter still needs more candidates.
+    // is in the target window. No cap — we want the full pool so we can
+    // evenly sample across the rating range afterwards.
     for (let i = 0; i < CHAPTERS.length; i++) {
       const spec = CHAPTERS[i];
       if (rating < spec.ratingMin || rating > spec.ratingMax) continue;
-      // Cap candidates at 3x the target so we don't eat memory
-      if (candidates[i].length >= spec.count * 3) continue;
       if (!spec.match(row)) continue;
       candidates[i].push(row);
       break; // first-match wins, no duplicates across chapters
@@ -278,7 +296,7 @@ async function main() {
   console.log(`⏳ Scanning CSV and bucketing by chapter...`);
   const candidates = await streamCsv();
 
-  console.log(`✓ Trimming and ordering:`);
+  console.log(`✓ Sampling evenly across each chapter's rating window:`);
   const out = [];
   let globalIndex = 0;
   for (let i = 0; i < CHAPTERS.length; i++) {
@@ -288,9 +306,13 @@ async function main() {
       if (a.rating !== b.rating) return a.rating - b.rating;
       return a.puzzleId.localeCompare(b.puzzleId);
     });
-    const chosen = pool.slice(0, spec.count);
+    const chosen = pickEvenlySpaced(pool, spec.count);
+    const stats =
+      chosen.length > 0
+        ? ` (${chosen[0].rating}→${chosen[chosen.length - 1].rating})`
+        : "";
     console.log(
-      `   ch.${spec.id} ${spec.title.padEnd(26)} ${chosen.length}/${spec.count}` +
+      `   ch.${spec.id} ${spec.title.padEnd(26)} ${String(chosen.length).padStart(2)}/${spec.count} from pool of ${String(pool.length).padStart(5)}${stats}` +
         (chosen.length < spec.count ? "  ⚠ underfull" : "")
     );
     for (const row of chosen) {
