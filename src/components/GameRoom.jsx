@@ -17,6 +17,7 @@ import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
 import { CoachPanel } from "./CoachPanel.jsx";
 import { GameBoard, SQ } from "./GameBoard.jsx";
+import { PieceLegend } from "./PieceLegend.jsx";
 import { PromotionDialog } from "./PromotionDialog.jsx";
 import { CapturedStrip } from "./CapturedStrip.jsx";
 import { SummitBadge } from "./SummitBadge.jsx";
@@ -498,6 +499,7 @@ export function GameRoom() {
               ))}
             </div>
             {coachEnabled && <CoachPanel tip={latestTip} />}
+            <PieceLegend theme={theme} />
           </div>
         </div>
       </div>

@@ -23,6 +23,7 @@ import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
 import { CoachPanel } from "./CoachPanel.jsx";
 import { GameBoard, SQ } from "./GameBoard.jsx";
 import { GetHelpButton } from "./GetHelpButton.jsx";
+import { PieceLegend } from "./PieceLegend.jsx";
 import { PromotionDialog } from "./PromotionDialog.jsx";
 import { CapturedStrip } from "./CapturedStrip.jsx";
 import { SummitBadge } from "./SummitBadge.jsx";
@@ -520,39 +521,7 @@ export function AIGame() {
               ))}
             </div>
             {coachEnabled && <CoachPanel tip={latestTip} />}
-            <div
-              style={{
-                borderTop: "1px solid var(--border)",
-                padding: "12px 16px",
-                background: "var(--bg-sunk)",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "var(--text-tertiary)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.12em",
-                  fontWeight: 600,
-                  display: "block",
-                  marginBottom: 8,
-                }}
-              >
-                Pieces
-              </span>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 10px" }}>
-                {["K", "Q", "R", "B", "N", "P"].map((p) => (
-                  <div key={p} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ display: "inline-flex" }}>
-                      {theme.renderPiece(p, { size: "20px" })}
-                    </span>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
-                      {theme.labels[p]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <PieceLegend theme={theme} />
           </div>
         </div>
       </div>
