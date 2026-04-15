@@ -1,189 +1,438 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { colorOf } from "../chess/board.js";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import puzzleData from "../puzzles/data.json";
+import chaptersData from "../puzzles/chapters.json";
+import { colorOf, FILES } from "../chess/board.js";
 import { legalMoves } from "../chess/moves.js";
-import { PUZZLES } from "../chess/puzzles.js";
+import { createPuzzleSolver } from "../chess/puzzleSolver.js";
+import { useAuth } from "../hooks/useAuth.js";
+import { usePuzzleProgress } from "../hooks/usePuzzleProgress.js";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
+import { GameBoard, SQ } from "./GameBoard.jsx";
+import { PromotionDialog } from "./PromotionDialog.jsx";
+import { SummitBadge } from "./SummitBadge.jsx";
 import {
   btnStyle,
-  menuDescStyle,
-  menuItemStyle,
-  menuLabelStyle,
-  screenStyle,
+  cardStyle,
+  errorBoxStyle,
+  ghostBtnStyle,
+  primaryBtnStyle,
+  successBoxStyle,
 } from "./ui.js";
-import { GameBoard, SQ } from "./GameBoard.jsx";
 
-const NO_CASTLING = { K: false, Q: false, k: false, q: false };
-
+// One solve screen for one puzzle at index :idx. Next/back navigation
+// handled by updating the route.
 export function PuzzleMode() {
+  const { idx } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const {
+    solvedIds,
+    solvedWithHelpIds,
+    markSolved,
+    markSolvedWithHelp,
+  } = usePuzzleProgress(user?.id);
   const theme = getTheme(DEFAULT_THEME_ID);
-  const [puzzle, setPuzzle] = useState(null);
+
+  const puzzleIndex = Math.max(0, Math.min(puzzleData.length - 1, Number(idx) || 0));
+  const puzzle = puzzleData[puzzleIndex];
+  const chapter = chaptersData.find((c) => c.id === puzzle.chapter);
+
+  // One solver instance per puzzle. Recreate when the puzzle changes.
+  const solverRef = useRef(null);
+  const [, forceRender] = useState(0);
+  const reRender = useCallback(() => forceRender((n) => n + 1), []);
+
+  // Per-attempt state
+  const [attempts, setAttempts] = useState(0);
   const [selected, setSelected] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
-  const [result, setResult] = useState(null);
-  const [showHint, setShowHint] = useState(false);
+  const [pendingPromo, setPendingPromo] = useState(null);
+  const [feedback, setFeedback] = useState(null); // null | {tone:'wrong'|'hint'|'shown'|'correct'|'done', text}
+  const [done, setDone] = useState(false);
+  const [hintSquare, setHintSquare] = useState(null);
 
-  if (!puzzle) {
-    return (
-      <div style={screenStyle}>
-        <div style={{ maxWidth: 460, width: "100%" }}>
-          <button onClick={() => navigate("/menu")} style={{ ...btnStyle, marginBottom: 16 }}>
-            ← Back
-          </button>
-          <h2
-            style={{
-              fontFamily: "'Libre Baskerville',serif",
-              fontSize: 24,
-              color: "#e7e5e4",
-              margin: "0 0 4px",
-              textAlign: "center",
-            }}
-          >
-            Training Puzzles
-          </h2>
-          <p style={{ color: "#78716c", fontSize: 13, textAlign: "center", margin: "0 0 20px" }}>
-            Solve tactical positions to sharpen your skills
-          </p>
-          {PUZZLES.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => {
-                setPuzzle(p);
-                setResult(null);
-                setSelected(null);
-                setValidMoves([]);
-                setShowHint(false);
-              }}
-              style={{ ...menuItemStyle, marginBottom: 8 }}
-            >
-              <span style={{ fontSize: 20, minWidth: 32 }}>
-                {p.category === "Checkmate" ? "♟️" : "⚔️"}
-              </span>
-              <div>
-                <span style={menuLabelStyle}>{p.title}</span>
-                <span style={menuDescStyle}>{p.desc}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Rebuild the solver when the puzzle index changes
+  useEffect(() => {
+    solverRef.current = createPuzzleSolver(puzzle);
+    setAttempts(0);
+    setSelected(null);
+    setValidMoves([]);
+    setPendingPromo(null);
+    setFeedback(null);
+    setDone(false);
+    setHintSquare(null);
+    reRender();
+  }, [puzzleIndex, puzzle, reRender]);
 
-  const handleSquare = (r, c) => {
-    if (result) return;
-    const piece = puzzle.board[r][c];
-    if (piece && colorOf(piece) === "white") {
-      setSelected([r, c]);
-      setValidMoves(legalMoves(puzzle.board, r, c, null, NO_CASTLING));
-      return;
-    }
-    if (selected) {
-      if (!validMoves.some(([vr, vc]) => vr === r && vc === c)) {
-        setSelected(null);
-        setValidMoves([]);
+  const solver = solverRef.current;
+  const board = solver?.currentBoard();
+  const playerColor = solver?.playerToMove();
+  const flipped = playerColor === "black";
+
+  const handleClick = useCallback(
+    (r, c) => {
+      if (!solver || done || pendingPromo) return;
+      const piece = board[r][c];
+      if (piece && colorOf(piece) === playerColor) {
+        setSelected([r, c]);
+        setValidMoves(
+          legalMoves(board, r, c, solver.currentState().enPassant, solver.currentState().castling)
+        );
         return;
       }
-      const sol = puzzle.solution;
-      if (selected[0] === sol.from[0] && selected[1] === sol.from[1] && r === sol.to[0] && c === sol.to[1]) {
-        setResult("correct");
-      } else {
-        setResult("wrong");
+      if (selected) {
+        const [sr, sc] = selected;
+        if (!validMoves.some(([vr, vc]) => vr === r && vc === c)) {
+          setSelected(null);
+          setValidMoves([]);
+          return;
+        }
+        const moving = board[sr][sc];
+        const promoRow = playerColor === "white" ? 0 : 7;
+        if (moving.toUpperCase() === "P" && r === promoRow) {
+          setPendingPromo({ from: [sr, sc], to: [r, c] });
+          return;
+        }
+        tryMove([sr, sc], [r, c], null);
       }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [board, playerColor, selected, validMoves, done, pendingPromo]
+  );
+
+  const tryMove = useCallback(
+    (from, to, promo) => {
+      if (!solver) return;
+      const result = solver.submitMove(from, to, promo);
       setSelected(null);
       setValidMoves([]);
+      setPendingPromo(null);
+
+      if (!result.correct) {
+        // Wrong move — increment attempt counter, show feedback
+        const next = attempts + 1;
+        setAttempts(next);
+        if (next === 1) {
+          setFeedback({ tone: "wrong", text: "Not quite — try again." });
+        } else if (next === 2) {
+          // Hint: highlight the correct source square
+          const fromSquare = solver.getHintFrom();
+          setHintSquare(fromSquare);
+          setFeedback({
+            tone: "hint",
+            text: `Hint: try moving the piece on ${FILES[fromSquare[1]]}${8 - fromSquare[0]}.`,
+          });
+        } else {
+          // 3+ wrong: reveal the remaining solution, mark solved_with_help, advance
+          const remaining = solver.getRemainingPlayerMoves();
+          setFeedback({
+            tone: "shown",
+            text:
+              "Here's the answer: " +
+              remaining
+                .map((uci) => `${uci.slice(0, 2)}→${uci.slice(2, 4)}`)
+                .join(", "),
+          });
+          setDone(true);
+          if (user) markSolvedWithHelp(puzzle.id, next);
+        }
+        reRender();
+        return;
+      }
+
+      // Correct!
+      if (result.done) {
+        setFeedback({ tone: "correct", text: "Correct! Puzzle solved 🎉" });
+        setDone(true);
+        if (user) markSolved(puzzle.id, attempts + 1);
+      } else {
+        // Still more moves in the sequence — opponent has already replied
+        setFeedback({
+          tone: "correct",
+          text: "Right move — opponent replied. Your move.",
+        });
+        // Clear after a beat so the user can focus on the next move
+        setTimeout(() => setFeedback(null), 1500);
+      }
+      reRender();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [attempts, solver, puzzle.id, user]
+  );
+
+  const handlePromo = useCallback(
+    (choice) => {
+      if (!pendingPromo) return;
+      tryMove(pendingPromo.from, pendingPromo.to, choice);
+    },
+    [pendingPromo, tryMove]
+  );
+
+  const next = () => {
+    if (puzzleIndex + 1 < puzzleData.length) {
+      const nextPuzzle = puzzleData[puzzleIndex + 1];
+      // If entering a new chapter, show intro
+      if (nextPuzzle.chapter !== puzzle.chapter) {
+        navigate(`/puzzles/chapter/${nextPuzzle.chapter}`);
+      } else {
+        navigate(`/puzzles/solve/${puzzleIndex + 1}`);
+      }
+    } else {
+      navigate("/puzzles");
     }
   };
 
+  // Is this puzzle the last in its chapter? Used to show the chapter completion
+  // celebration in feedback.
+  const isLastInChapter = useMemo(() => {
+    const nextP = puzzleData[puzzleIndex + 1];
+    return !nextP || nextP.chapter !== puzzle.chapter;
+  }, [puzzleIndex, puzzle.chapter]);
+
+  if (!solver) return null;
+
+  const feedbackStyle =
+    feedback?.tone === "correct"
+      ? successBoxStyle
+      : feedback?.tone === "wrong"
+        ? errorBoxStyle
+        : feedback?.tone === "hint"
+          ? {
+              background: "var(--accent-tint)",
+              border: "1px solid var(--accent)",
+              color: "var(--accent-hover)",
+              fontSize: "var(--text-sm)",
+              padding: "10px 14px",
+              borderRadius: "var(--radius-sm)",
+            }
+          : feedback?.tone === "shown"
+            ? {
+                background: "var(--primary-tint)",
+                border: "1px solid var(--primary)",
+                color: "var(--primary)",
+                fontSize: "var(--text-sm)",
+                padding: "10px 14px",
+                borderRadius: "var(--radius-sm)",
+              }
+            : null;
+
+  const isAlreadySolved = solvedIds.has(puzzle.id);
+  const solvedWithHelpBefore = solvedWithHelpIds.has(puzzle.id);
+
   return (
-    <div style={screenStyle}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        padding: "32px 20px 64px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 900,
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+        }}
+      >
+        {/* Header */}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            width: `calc(${SQ} * 8)`,
             alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
           }}
         >
-          <button onClick={() => setPuzzle(null)} style={btnStyle}>
-            ← Puzzles
-          </button>
-          <span
-            style={{ fontFamily: "'Libre Baskerville',serif", fontSize: 16, color: "#e7e5e4" }}
-          >
-            {puzzle.title}
-          </span>
-        </div>
-        <p style={{ color: "#a8a29e", fontSize: 12, margin: 0, width: `calc(${SQ} * 8)` }}>
-          {puzzle.desc}. White to move.
-        </p>
-        <GameBoard
-          board={puzzle.board}
-          theme={theme}
-          selected={selected}
-          validMoves={validMoves}
-          lastMove={null}
-          turn="white"
-          inCheck={false}
-          captureAnim={null}
-          onSquareClick={handleSquare}
-          onCaptureAnimDone={() => {}}
-          disabled={!!result}
-        />
-        {result === "correct" && (
-          <div
-            style={{
-              background: "#14532d",
-              border: "1px solid #22c55e",
-              borderRadius: 6,
-              padding: "10px 16px",
-              color: "#bbf7d0",
-              fontSize: 13,
-              textAlign: "center",
-            }}
-          >
-            Correct! Well done.
-          </div>
-        )}
-        {result === "wrong" && (
-          <div
-            style={{
-              background: "#7f1d1d",
-              border: "1px solid #dc2626",
-              borderRadius: 6,
-              padding: "10px 16px",
-              color: "#fecaca",
-              fontSize: 13,
-              textAlign: "center",
-            }}
-          >
-            Not quite. Try again!
-            <br />
-            <button
-              onClick={() => {
-                setResult(null);
-                setSelected(null);
-                setValidMoves([]);
-              }}
-              style={{ ...btnStyle, marginTop: 6, fontSize: 11 }}
-            >
-              Retry
+          <SummitBadge
+            size="header"
+            showWordmark
+            subtitle={`Puzzle ${puzzleIndex + 1} of ${puzzleData.length}`}
+          />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => navigate("/puzzles")} style={ghostBtnStyle}>
+              ← Book
             </button>
           </div>
-        )}
-        {!result && !showHint && (
-          <button onClick={() => setShowHint(true)} style={{ ...btnStyle, fontSize: 11 }}>
-            Show Hint
-          </button>
-        )}
-        {showHint && !result && (
-          <p style={{ color: "#fbbf24", fontSize: 12, margin: 0, fontStyle: "italic" }}>
-            💡 {puzzle.hint}
-          </p>
-        )}
+        </div>
+
+        {/* Main layout */}
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: `calc(${SQ} * 8)`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 8,
+                fontSize: "var(--text-sm)",
+              }}
+            >
+              <span style={{ color: "var(--accent)", fontWeight: 600 }}>
+                Chapter {puzzle.chapter}: {chapter?.title}
+              </span>
+              <span style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
+                {playerColor === "white" ? "White" : "Black"} to move
+              </span>
+            </div>
+
+            <GameBoard
+              board={board}
+              theme={theme}
+              selected={selected}
+              validMoves={validMoves}
+              lastMove={null}
+              turn={playerColor}
+              inCheck={false}
+              captureAnim={null}
+              onSquareClick={handleClick}
+              onCaptureAnimDone={() => {}}
+              disabled={done}
+              flipped={flipped}
+            />
+
+            {/* Feedback pill */}
+            {feedback && (
+              <div
+                style={{
+                  ...feedbackStyle,
+                  width: `calc(${SQ} * 8)`,
+                  textAlign: "center",
+                  fontWeight: 500,
+                }}
+              >
+                {feedback.text}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div style={{ display: "flex", gap: 8, width: `calc(${SQ} * 8)` }}>
+              {done ? (
+                <button
+                  onClick={next}
+                  style={{ ...primaryBtnStyle, flex: 1, padding: "14px 20px" }}
+                >
+                  {puzzleIndex + 1 < puzzleData.length
+                    ? isLastInChapter
+                      ? "Chapter complete — next chapter →"
+                      : "Next puzzle →"
+                    : "Back to Puzzle Book"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      // Skip = reveal solution + mark solved_with_help
+                      const remaining = solver.getRemainingPlayerMoves();
+                      setFeedback({
+                        tone: "shown",
+                        text:
+                          "Solution: " +
+                          remaining
+                            .map((uci) => `${uci.slice(0, 2)}→${uci.slice(2, 4)}`)
+                            .join(", "),
+                      });
+                      setDone(true);
+                      if (user) markSolvedWithHelp(puzzle.id, Math.max(attempts, 3));
+                    }}
+                    style={{ ...btnStyle, flex: 1 }}
+                  >
+                    Show solution
+                  </button>
+                </>
+              )}
+            </div>
+
+            {isAlreadySolved && !done && (
+              <div
+                style={{
+                  fontSize: "var(--text-xs)",
+                  color: "var(--text-tertiary)",
+                  fontFamily: "var(--font-body)",
+                }}
+              >
+                {solvedWithHelpBefore
+                  ? "You solved this with help before — try it clean!"
+                  : "You've already solved this one. Warming up?"}
+              </div>
+            )}
+
+            {hintSquare && !done && (
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-tertiary)" }}>
+                (The highlighted square is the piece to move.)
+              </div>
+            )}
+          </div>
+
+          {/* Side panel: puzzle info */}
+          <div
+            style={{
+              ...cardStyle,
+              width: 200,
+              padding: "20px 24px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "var(--text-xs)",
+                color: "var(--text-tertiary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+                fontWeight: 600,
+                marginBottom: 8,
+              }}
+            >
+              Puzzle info
+            </div>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+              <div style={{ marginBottom: 6 }}>
+                <strong style={{ color: "var(--text-primary)" }}>Rating:</strong>{" "}
+                <span style={{ fontFamily: "var(--font-mono)" }}>{puzzle.rating}</span>
+              </div>
+              <div>
+                <strong style={{ color: "var(--text-primary)" }}>Themes:</strong>
+                <div style={{ marginTop: 4 }}>
+                  {puzzle.themes.map((t) => (
+                    <span
+                      key={t}
+                      style={{
+                        display: "inline-block",
+                        fontSize: "var(--text-xs)",
+                        background: "var(--bg-sunk)",
+                        color: "var(--text-secondary)",
+                        padding: "2px 8px",
+                        borderRadius: "var(--radius-pill)",
+                        marginRight: 4,
+                        marginBottom: 4,
+                        fontFamily: "var(--font-body)",
+                      }}
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {pendingPromo && (
+        <PromotionDialog theme={theme} turn={playerColor} onPick={handlePromo} />
+      )}
     </div>
   );
 }

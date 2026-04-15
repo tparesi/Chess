@@ -8,3 +8,7 @@ dist
 .vite
 coverage
 .vercel
+
+# Giant Lichess puzzle archive — curated output (src/puzzles/data.json) IS committed.
+scripts/lichess_db_puzzle.csv
+scripts/lichess_db_puzzle.csv.zst

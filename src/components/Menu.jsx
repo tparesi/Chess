@@ -18,6 +18,7 @@ const items = [
     icon: "⚔️",
     hero: true,
   },
+  { path: "/puzzles", label: "Puzzle Book", desc: "150 puzzles, learn by solving", icon: "📖" },
   { path: "/leaderboard", label: "Leaderboard", desc: "See who's on top", icon: "🏔️" },
   { path: "/feedback", label: "Send Feedback", desc: "Tell me what to build next", icon: "💬" },
 ];

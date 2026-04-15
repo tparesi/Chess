@@ -14,6 +14,9 @@ import { Lobby } from "./components/Lobby.jsx";
 import { LoginScreen } from "./components/LoginScreen.jsx";
 import { Menu } from "./components/Menu.jsx";
 import { PlayMenu } from "./components/PlayMenu.jsx";
+import { PuzzleBookHome } from "./components/PuzzleBookHome.jsx";
+import { ChapterIntro } from "./components/ChapterIntro.jsx";
+import { PuzzleMode } from "./components/PuzzleMode.jsx";
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -80,6 +83,30 @@ export default function App() {
           element={
             <RequireAuth>
               <GameRoom />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/puzzles"
+          element={
+            <RequireAuth>
+              <PuzzleBookHome />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/puzzles/chapter/:id"
+          element={
+            <RequireAuth>
+              <ChapterIntro />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/puzzles/solve/:idx"
+          element={
+            <RequireAuth>
+              <PuzzleMode />
             </RequireAuth>
           }
         />

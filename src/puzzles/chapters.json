@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "title": "Mate with the queen",
+    "intro": "The queen is your strongest piece — she can move in all 8 directions and go as far as she wants. In these puzzles you'll find a way to use her to put the other king in 'checkmate' — a spot where the king has nowhere safe to go. Look for squares where the queen is protected by another piece, so the enemy king can't just capture her.",
+    "concepts": ["checkmate", "queen"]
+  },
+  {
+    "id": 2,
+    "title": "Mate with the rook",
+    "intro": "The rook moves up, down, left, and right, but not diagonally. Rooks are deadly on open rows and columns. In these puzzles, you'll slide your rook into a spot where the enemy king is trapped against the edge of the board. The edges of the board are the king's worst enemies!",
+    "concepts": ["checkmate", "rook"]
+  },
+  {
+    "id": 3,
+    "title": "Sneaky mates in one",
+    "intro": "Now try mate in one with any piece. Sometimes it's a bishop, a knight, or even a pawn. The pattern is the same: find a move that attacks the king so the king has no square to run to and no piece can block or capture the attacker.",
+    "concepts": ["checkmate", "pattern recognition"]
+  },
+  {
+    "id": 4,
+    "title": "Don't lose your pieces",
+    "intro": "Before you move, look around — is one of your pieces about to be captured for nothing? In these puzzles, the other player has just left a piece hanging, meaning it's not protected. Your job is to grab it with one of your pieces. Free pieces are some of the best moves in chess!",
+    "concepts": ["hanging pieces", "defense"]
+  },
+  {
+    "id": 5,
+    "title": "The fork",
+    "intro": "A fork is when one of your pieces attacks two of the other player's pieces at the same time. They can only move one piece per turn, so whichever one they save, you capture the other! Knights are the sneakiest forkers because they can jump over other pieces. Look for a square where your piece lines up against TWO targets.",
+    "concepts": ["fork", "double attack"]
+  },
+  {
+    "id": 6,
+    "title": "The pin",
+    "intro": "A pin is when you attack a piece that can't move because moving it would expose something more valuable behind it — usually the king. If a piece is pinned against the king, it literally cannot move at all (that would be illegal!). Use pins to freeze the other player's pieces in place, then pile on attackers.",
+    "concepts": ["pin", "absolute pin"]
+  },
+  {
+    "id": 7,
+    "title": "The skewer",
+    "intro": "A skewer is like a reverse pin. You attack a valuable piece (like the king or queen) and force it to move — and when it does, a less valuable piece behind it gets captured. Bishops, rooks, and queens are the only pieces that can skewer because they move in straight lines.",
+    "concepts": ["skewer"]
+  },
+  {
+    "id": 8,
+    "title": "Surprise attacks",
+    "intro": "When you move one piece out of the way and suddenly ANOTHER piece (that was hiding behind it) attacks something, that's called a 'discovered attack'. They're surprising because the player being attacked is usually watching the piece that moved, not the one that appeared. Double-check: sometimes a discovered attack gives check AND captures something at the same time!",
+    "concepts": ["discovered attack"]
+  },
+  {
+    "id": 9,
+    "title": "Back rank mate",
+    "intro": "The back rank is the row where the king starts (rank 1 for white, rank 8 for black). Pawns that haven't moved block the king from escaping forward — so a rook or queen sliding along the back rank can deliver checkmate with no escape. This is one of the most common beginner mistakes: forgetting about your own back rank!",
+    "concepts": ["back rank mate", "checkmate"]
+  },
+  {
+    "id": 10,
+    "title": "Mate in two",
+    "intro": "Now you need to think two moves ahead. You make a move, the other player makes the only move they can (usually to get out of check or save a piece), and then your next move delivers checkmate. Ask yourself: after my first move, what moves does the other player even have? If they have only one reply, you can plan your second move exactly.",
+    "concepts": ["mate in two", "calculation"]
+  },
+  {
+    "id": 11,
+    "title": "Endgames that win",
+    "intro": "The endgame is when most of the pieces are gone and kings become active. In these puzzles you'll learn to use passed pawns (pawns with a clear path to promotion), trap the enemy king against the edge, and use your own king as an attacker. Endgames feel slow, but every move matters more than in the opening.",
+    "concepts": ["endgame", "king activity"]
+  }
+]
