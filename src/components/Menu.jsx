@@ -170,6 +170,66 @@ export function Menu() {
               />
             </button>
           </div>
+
+          {/* Classic piece style toggle */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 14,
+              paddingTop: 14,
+              borderTop: "1px solid var(--border)",
+              gap: 12,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 600,
+                  fontSize: "var(--text-sm)",
+                  color: "var(--text-primary)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Classic pieces
+              </div>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
+                Use standard chess symbols (♔♕♖) instead of animal icons.
+              </div>
+            </div>
+            <button
+              onClick={() => setPref("pieceStyle", prefs.pieceStyle === "classic" ? "custom" : "classic")}
+              role="switch"
+              aria-checked={prefs.pieceStyle === "classic"}
+              style={{
+                width: 46,
+                height: 26,
+                borderRadius: "var(--radius-pill)",
+                border: "1.5px solid var(--border)",
+                background: prefs.pieceStyle === "classic" ? "var(--primary)" : "var(--bg-sunk)",
+                cursor: "pointer",
+                position: "relative",
+                transition: "all var(--dur) var(--ease)",
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 1,
+                  left: prefs.pieceStyle === "classic" ? 22 : 2,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  boxShadow: "var(--shadow-sm)",
+                  transition: "left var(--dur) var(--ease)",
+                }}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Menu tiles */}

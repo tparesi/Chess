@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 const KEY = "slope-chess-prefs";
 const DEFAULTS = {
   coachEnabled: true,
+  pieceStyle: "custom",
 };
 
 function readPrefs() {

@@ -18,6 +18,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { usePreferences } from "../hooks/usePreferences.js";
 import { useProfile } from "../hooks/useProfile.js";
 import { recordAiMatch } from "../lib/games.js";
+import { classic } from "../themes/classic.jsx";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
 import { CoachPanel } from "./CoachPanel.jsx";
@@ -36,7 +37,6 @@ export function AIGame() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useProfile(user?.id);
-  const theme = getTheme(DEFAULT_THEME_ID);
   const playerName = profile?.display_name ?? "You";
   const aiName = `AI (${difficulty})`;
 
@@ -59,6 +59,10 @@ export function AIGame() {
   const movesScrollRef = useRef(null);
   const { prefs } = usePreferences();
   const coachEnabled = prefs.coachEnabled;
+  const baseTheme = getTheme(DEFAULT_THEME_ID);
+  const theme = prefs.pieceStyle === "classic"
+    ? { ...baseTheme, renderPiece: classic.renderPiece }
+    : baseTheme;
 
   useEffect(() => {
     if (movesScrollRef.current) {

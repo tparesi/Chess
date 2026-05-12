@@ -13,6 +13,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { usePreferences } from "../hooks/usePreferences.js";
 import { abandonGame, finalizePvpMatch, getGame, submitMove } from "../lib/games.js";
 import { supabase } from "../lib/supabase.js";
+import { classic } from "../themes/classic.jsx";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
 import { CoachPanel } from "./CoachPanel.jsx";
@@ -27,7 +28,6 @@ export function GameRoom() {
   const { id: gameId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const theme = getTheme(DEFAULT_THEME_ID);
 
   const [game, setGame] = useState(null);
   const [err, setErr] = useState(null);
@@ -46,6 +46,10 @@ export function GameRoom() {
   const finalizedRef = useRef(false);
   const { prefs } = usePreferences();
   const coachEnabled = prefs.coachEnabled;
+  const baseTheme = getTheme(DEFAULT_THEME_ID);
+  const theme = prefs.pieceStyle === "classic"
+    ? { ...baseTheme, renderPiece: classic.renderPiece }
+    : baseTheme;
 
   const captured = useMemo(
     () => (game?.board ? computeCapturedFromBoard(game.board) : { white: [], black: [] }),
