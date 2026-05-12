@@ -11,7 +11,7 @@ import { moveToSAN } from "../chess/san.js";
 import { analyzeLastMove, inferMoveFromDiff } from "../chess/coach.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { usePreferences } from "../hooks/usePreferences.js";
-import { finalizePvpMatch, getGame, submitMove } from "../lib/games.js";
+import { abandonGame, finalizePvpMatch, getGame, submitMove } from "../lib/games.js";
 import { supabase } from "../lib/supabase.js";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
@@ -37,6 +37,8 @@ export function GameRoom() {
   const [overlay, setOverlay] = useState(null);
   const [captureAnim, setCaptureAnim] = useState(null);
   const [confirmForfeit, setConfirmForfeit] = useState(false);
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const MIN_MOVES_TO_FORFEIT = 5;
   const [latestTip, setLatestTip] = useState(null);
   const recentTipIdsRef = useRef([]);
   const prevBoardRef = useRef(null);
@@ -56,6 +58,15 @@ export function GameRoom() {
     if (game.black_id === user.id) return "black";
     return null;
   }, [game, user]);
+
+  const myMoveCount = useMemo(() => {
+    if (!game?.move_history || !myColor) return 0;
+    return game.move_history.filter(
+      (_, i) => myColor === "white" ? i % 2 === 0 : i % 2 === 1
+    ).length;
+  }, [game?.move_history, myColor]);
+
+  const canForfeit = myMoveCount >= MIN_MOVES_TO_FORFEIT;
 
   const isMyTurn = !!myColor && game?.turn === myColor && game?.status === "active";
   const flipped = myColor === "black";
@@ -255,7 +266,7 @@ export function GameRoom() {
   );
 
   const handleForfeit = async () => {
-    if (!game || !myColor) return;
+    if (!game || !myColor || !canForfeit) return;
     const winner = myColor === "white" ? "black" : "white";
     setConfirmForfeit(false);
     try {
@@ -270,6 +281,17 @@ export function GameRoom() {
         "forfeit",
         { status: "finished", winner }
       );
+    } catch (e) {
+      setErr(e.message || String(e));
+    }
+  };
+
+  const handleAbandon = async () => {
+    if (!game || !myColor) return;
+    setConfirmAbandon(false);
+    try {
+      await abandonGame(gameId);
+      navigate("/lobby");
     } catch (e) {
       setErr(e.message || String(e));
     }
@@ -355,12 +377,22 @@ export function GameRoom() {
           />
           <div style={{ display: "flex", gap: 8 }}>
             {myColor && game.status === "active" && (
-              <button
-                onClick={() => setConfirmForfeit(true)}
-                style={{ ...ghostBtnStyle, color: "var(--error)" }}
-              >
-                Forfeit
-              </button>
+              canForfeit ? (
+                <button
+                  onClick={() => setConfirmForfeit(true)}
+                  style={{ ...ghostBtnStyle, color: "var(--error)" }}
+                >
+                  Forfeit
+                </button>
+              ) : (
+                <button
+                  onClick={() => setConfirmAbandon(true)}
+                  style={{ ...ghostBtnStyle, color: "var(--text-secondary)" }}
+                  title={`Make ${MIN_MOVES_TO_FORFEIT - myMoveCount} more move${MIN_MOVES_TO_FORFEIT - myMoveCount === 1 ? "" : "s"} to unlock forfeit`}
+                >
+                  Abandon
+                </button>
+              )
             )}
             <button onClick={() => navigate("/lobby")} style={btnStyle}>
               Lobby
@@ -528,6 +560,79 @@ export function GameRoom() {
           onReplay={null}
           onMenu={() => navigate("/menu")}
         />
+      )}
+
+      {confirmAbandon && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-overlay)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 150,
+            animation: "fadeIn 0.25s var(--ease)",
+          }}
+          onClick={() => setConfirmAbandon(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--bg-raised)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-md)",
+              padding: "28px 32px 24px",
+              maxWidth: 380,
+              width: "88%",
+              textAlign: "center",
+              boxShadow: "var(--shadow-lg)",
+              animation: "summitDrop 0.5s var(--ease-overshoot) both",
+            }}
+          >
+            <div style={{ fontSize: 44, marginBottom: 10 }}>🚪</div>
+            <h3
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "var(--text-md)",
+                fontWeight: 700,
+                color: "var(--text-primary)",
+                margin: "0 0 8px",
+                letterSpacing: "-0.01em",
+                fontVariationSettings: '"SOFT" 30, "opsz" 144',
+              }}
+            >
+              Abandon this game?
+            </h3>
+            <p
+              style={{
+                fontSize: "var(--text-sm)",
+                color: "var(--text-secondary)",
+                margin: "0 0 20px",
+                lineHeight: 1.55,
+              }}
+            >
+              This game is still early, so{" "}
+              <strong style={{ color: "var(--text-primary)" }}>no ELO will change</strong> for
+              either player. The game will disappear for both of you.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={() => setConfirmAbandon(false)}
+                style={{ ...btnStyle, padding: "10px 22px" }}
+              >
+                Keep playing
+              </button>
+              <button
+                onClick={handleAbandon}
+                style={{ ...primaryBtnStyle, padding: "10px 22px" }}
+              >
+                Yes, abandon
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {confirmForfeit && (

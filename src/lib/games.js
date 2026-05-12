@@ -7,6 +7,26 @@ export async function createGame() {
   const uid = userRes?.user?.id;
   if (!uid) throw new Error("Not signed in");
 
+  const { count: waitingCount } = await supabase
+    .from("games")
+    .select("id", { count: "exact", head: true })
+    .eq("white_id", uid)
+    .eq("status", "waiting");
+
+  if (waitingCount > 0) {
+    throw new Error("You already have an open challenge waiting for a player. Cancel it first.");
+  }
+
+  const { count: activeCount } = await supabase
+    .from("games")
+    .select("id", { count: "exact", head: true })
+    .or(`white_id.eq.${uid},black_id.eq.${uid}`)
+    .eq("status", "active");
+
+  if (activeCount >= 5) {
+    throw new Error("You already have 5 games in progress. Forfeit one to start a new one.");
+  }
+
   const { data, error } = await supabase
     .from("games")
     .insert({
@@ -25,9 +45,45 @@ export async function createGame() {
 
 // Join a waiting game as the black player (via the join_game RPC for atomicity).
 export async function joinGame(gameId) {
+  const { data: userRes } = await supabase.auth.getUser();
+  const uid = userRes?.user?.id;
+  if (!uid) throw new Error("Not signed in");
+
+  const { count: activeCount } = await supabase
+    .from("games")
+    .select("id", { count: "exact", head: true })
+    .or(`white_id.eq.${uid},black_id.eq.${uid}`)
+    .eq("status", "active");
+
+  if (activeCount >= 5) {
+    throw new Error("You already have 5 games in progress. Forfeit one before joining a new one.");
+  }
+
   const { data, error } = await supabase.rpc("join_game", { p_game_id: gameId });
   if (error) throw error;
   return data;
+}
+
+// Cancel a waiting game the current user created (no opponent yet, no ELO impact).
+export async function cancelWaitingGame(gameId) {
+  const { data: userRes } = await supabase.auth.getUser();
+  const uid = userRes?.user?.id;
+  if (!uid) throw new Error("Not signed in");
+
+  const { error } = await supabase
+    .from("games")
+    .update({ status: "abandoned" })
+    .eq("id", gameId)
+    .eq("white_id", uid)
+    .eq("status", "waiting");
+
+  if (error) throw error;
+}
+
+// Abandon an early active game (< 5 moves each) with no ELO impact for either player.
+export async function abandonGame(gameId) {
+  const { error } = await supabase.rpc("abandon_game", { p_game_id: gameId });
+  if (error) throw error;
 }
 
 // Apply a move to a live PvP game. Caller has already computed the new state

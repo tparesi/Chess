@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
-import { createGame, joinGame, listLobbyGames } from "../lib/games.js";
+import { cancelWaitingGame, createGame, joinGame, listLobbyGames } from "../lib/games.js";
 import { supabase } from "../lib/supabase.js";
 import { SummitBadge } from "./SummitBadge.jsx";
 import {
@@ -75,6 +75,16 @@ export function Lobby() {
       navigate(`/game/${gameId}`);
     } catch (e) {
       setErr(e.message || String(e));
+    }
+  };
+
+  const handleCancel = async (e, gameId) => {
+    e.stopPropagation();
+    try {
+      await cancelWaitingGame(gameId);
+      setErr(null);
+    } catch (err2) {
+      setErr(err2.message || String(err2));
     }
   };
 
@@ -352,6 +362,20 @@ export function Lobby() {
                       {isMine ? "Your game — waiting for opponent" : "Tap to join"}
                     </span>
                   </div>
+                  {isMine && (
+                    <button
+                      onClick={(e) => handleCancel(e, g.id)}
+                      style={{
+                        ...ghostBtnStyle,
+                        fontSize: "var(--text-xs)",
+                        padding: "6px 12px",
+                        color: "var(--text-tertiary)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </button>
               );
             })}
