@@ -301,18 +301,24 @@ export function AIGame() {
     if (gameStatus !== "checkmate" && gameStatus !== "stalemate" && gameStatus !== "fifty-move-draw") return;
     const winner =
       gameStatus === "checkmate" ? (turn === "white" ? "black" : "white") : null;
+    const result = winner ?? "draw";
 
-    if (user && winner != null) {
+    if (user) {
       recordAiMatch({
         userId: user.id,
-        result: winner,
+        result,
         difficulty,
         moves: history,
-      }).catch((e) => console.error("[recordAiMatch]", e));
+      })
+        .then((delta) => setOverlay({ winner: winner ?? "white", eloDelta: delta }))
+        .catch((e) => {
+          console.error("[recordAiMatch]", e);
+          setOverlay({ winner: winner ?? "white" });
+        });
+    } else {
+      const t = setTimeout(() => setOverlay({ winner: winner ?? "white" }), 800);
+      return () => clearTimeout(t);
     }
-
-    const t = setTimeout(() => setOverlay({ winner: winner ?? "white" }), 800);
-    return () => clearTimeout(t);
   }, [gameStatus, turn, history, user, difficulty]);
 
   const statusText = useMemo(() => {
@@ -558,6 +564,7 @@ export function AIGame() {
           winnerName={overlay.winner === "white" ? playerName : aiName}
           loserName={overlay.winner === "white" ? aiName : playerName}
           theme={theme}
+          eloDelta={overlay.eloDelta}
           onReplay={reset}
           onMenu={() => navigate("/menu")}
         />

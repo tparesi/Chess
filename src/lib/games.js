@@ -1,4 +1,5 @@
 import { INIT, INITIAL_CASTLING } from "../chess/board.js";
+import { AI_ELO, applyResult } from "./elo.js";
 import { supabase } from "./supabase.js";
 
 // Create a new PvP game as the white player and return its row.
@@ -110,27 +111,28 @@ export async function finalizePvpMatch(gameId) {
   if (error) throw error;
 }
 
-// Record an AI match result. Updates win/loss counters but does not touch ELO.
+// Record an AI match result. Applies K=32 ELO vs the difficulty's fixed rating,
+// updates win/loss/draw counters, and stores ELO before/after in the match row.
+// Returns the player's ELO delta so the caller can show it in the overlay.
 export async function recordAiMatch({ userId, result, difficulty, moves }) {
-  const updates = {
-    wins: result === "white" ? 1 : 0,
-    losses: result === "black" ? 1 : 0,
-    draws: result === "draw" ? 1 : 0,
-  };
-
   const { data: profile, error: pErr } = await supabase
     .from("profiles")
-    .select("wins, losses, draws")
+    .select("elo, wins, losses, draws")
     .eq("id", userId)
     .single();
   if (pErr) throw pErr;
 
+  const aiElo = AI_ELO[difficulty] ?? AI_ELO.medium;
+  // Player is always white in AI games; AI is black.
+  const { whiteElo: newElo, whiteDelta } = applyResult(profile.elo, aiElo, result);
+
   const { error: uErr } = await supabase
     .from("profiles")
     .update({
-      wins: profile.wins + updates.wins,
-      losses: profile.losses + updates.losses,
-      draws: profile.draws + updates.draws,
+      elo: newElo,
+      wins: profile.wins + (result === "white" ? 1 : 0),
+      losses: profile.losses + (result === "black" ? 1 : 0),
+      draws: profile.draws + (result === "draw" ? 1 : 0),
     })
     .eq("id", userId);
   if (uErr) throw uErr;
@@ -141,8 +143,14 @@ export async function recordAiMatch({ userId, result, difficulty, moves }) {
     ai_difficulty: difficulty,
     result,
     moves,
+    white_elo_before: profile.elo,
+    black_elo_before: aiElo,
+    white_elo_after: newElo,
+    black_elo_after: aiElo,
   });
   if (mErr) throw mErr;
+
+  return whiteDelta;
 }
 
 // Fetches both the shared lobby (open challenges) and the current user's
