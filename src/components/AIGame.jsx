@@ -161,7 +161,25 @@ export function AIGame() {
       const nextTurn = color === "white" ? "black" : "white";
       const inCheck = isInCheck(nb, nextTurn);
       const hasMove = hasLegalMove(nb, nextTurn, nextEP, nextCastling);
-      const status = !hasMove ? (inCheck ? "checkmate" : "stalemate") : inCheck ? "check" : null;
+
+      // Fifty-move rule: no pawn move and no capture for 100 half-moves.
+      const isPawnMove = board[sr][sc]?.toLowerCase() === "p";
+      const isCapture =
+        board[tr][tc] !== null ||
+        (enPassant !== null && tr === enPassant[0] && tc === enPassant[1]);
+      let halfmoveClock = 0;
+      for (let i = history.length - 1; i >= 0; i--) {
+        const s = history[i];
+        if (/^[a-h]/.test(s) || s.includes("x")) break;
+        halfmoveClock++;
+      }
+      const fiftyMoveDrawn = !isPawnMove && !isCapture && halfmoveClock + 1 >= 100;
+
+      const status = !hasMove
+        ? (inCheck ? "checkmate" : "stalemate")
+        : fiftyMoveDrawn
+          ? "fifty-move-draw"
+          : inCheck ? "check" : null;
 
       // Proper SAN from the PRE-move board, so captures/disambiguation work.
       const moveSAN = moveToSAN(
@@ -276,7 +294,7 @@ export function AIGame() {
 
   // Game end → record + show overlay
   useEffect(() => {
-    if (gameStatus !== "checkmate" && gameStatus !== "stalemate") return;
+    if (gameStatus !== "checkmate" && gameStatus !== "stalemate" && gameStatus !== "fifty-move-draw") return;
     const winner =
       gameStatus === "checkmate" ? (turn === "white" ? "black" : "white") : null;
 
@@ -298,6 +316,7 @@ export function AIGame() {
       return `Checkmate! ${turn === "white" ? theme.sideNames.black : theme.sideNames.white} wins!`;
     }
     if (gameStatus === "stalemate") return "Stalemate. Draw.";
+    if (gameStatus === "fifty-move-draw") return "Draw — 50 moves without a capture or pawn move.";
     if (aiThinking) return `${theme.sideNames.black} thinking`;
     if (gameStatus === "check") {
       return `${turn === "white" ? theme.sideNames.white : theme.sideNames.black} in check!`;

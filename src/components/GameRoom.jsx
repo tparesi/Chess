@@ -205,6 +205,30 @@ export function GameRoom() {
         winner = inCheck ? myColor : "draw";
       }
 
+      // Fifty-move rule: automatic draw if 50 full moves pass with no pawn
+      // move and no capture. Checked from the pre-move board so the piece
+      // and target square are still in their original positions.
+      if (!status) {
+        const movingPiece = game.board[from[0]][from[1]];
+        const isPawnMove = movingPiece?.toLowerCase() === "p";
+        const isCapture =
+          game.board[to[0]][to[1]] !== null ||
+          (game.en_passant !== null &&
+            to[0] === game.en_passant[0] &&
+            to[1] === game.en_passant[1]);
+        const hist = game.move_history ?? [];
+        let halfmoveClock = 0;
+        for (let i = hist.length - 1; i >= 0; i--) {
+          const s = hist[i];
+          if (s === "forfeit" || /^[a-h]/.test(s) || s.includes("x")) break;
+          halfmoveClock++;
+        }
+        if (!isPawnMove && !isCapture && halfmoveClock + 1 >= 100) {
+          status = "finished";
+          winner = "draw";
+        }
+      }
+
       // Proper SAN — uses the PRE-move board so captures/disambiguation/
       // check/mate suffixes work.
       const moveSAN = moveToSAN(
