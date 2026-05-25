@@ -7,16 +7,17 @@
 
 begin;
 
+-- Rename highest → lowest first to avoid collisions, then tighten the constraint.
 alter table matches drop constraint if exists matches_ai_difficulty_check;
-alter table matches add constraint matches_ai_difficulty_check
-  check (ai_difficulty is null or ai_difficulty = any (
-    array['beginner'::text, 'easy'::text, 'medium'::text, 'hard'::text]
-  ));
 
--- Rename highest → lowest to avoid collisions.
 update matches set ai_difficulty = 'hard'     where ai_difficulty = 'expert';
 update matches set ai_difficulty = 'medium'   where ai_difficulty = 'hard';
 update matches set ai_difficulty = 'easy'     where ai_difficulty = 'medium';
 update matches set ai_difficulty = 'beginner' where ai_difficulty = 'easy';
+
+alter table matches add constraint matches_ai_difficulty_check
+  check (ai_difficulty is null or ai_difficulty = any (
+    array['beginner'::text, 'easy'::text, 'medium'::text, 'hard'::text]
+  ));
 
 commit;
