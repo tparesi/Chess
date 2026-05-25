@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
+import { AI_ELO, applyResult } from "../lib/elo.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { useProfile } from "../hooks/useProfile.js";
-import { AI_ELO, applyResult } from "../lib/elo.js";
 import { SummitBadge } from "./SummitBadge.jsx";
 import {
   ghostBtnStyle,
@@ -42,10 +42,10 @@ const AI_MODES = [
 ];
 
 function EloPreview({ playerElo, difficulty }) {
-  if (playerElo == null) return null;
   const aiElo = AI_ELO[difficulty];
-  const { whiteDelta: winDelta } = applyResult(playerElo, aiElo, "white");
-  const { whiteDelta: lossDelta } = applyResult(playerElo, aiElo, "black");
+  const hasDelta = playerElo != null;
+  const { whiteDelta: winDelta } = hasDelta ? applyResult(playerElo, aiElo, "white") : {};
+  const { whiteDelta: lossDelta } = hasDelta ? applyResult(playerElo, aiElo, "black") : {};
 
   return (
     <div
@@ -57,18 +57,20 @@ function EloPreview({ playerElo, difficulty }) {
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-        <span style={{ color: "#22c55e", fontWeight: 600 }}>
-          {winDelta > 0 ? `+${winDelta}` : winDelta}
-        </span>
-        {" / "}
-        <span style={{ color: "#ef4444", fontWeight: 600 }}>
-          {lossDelta}
-        </span>
+      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)", fontWeight: 600, whiteSpace: "nowrap" }}>
+        ELO {aiElo}
       </span>
-      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-tertiary, var(--text-secondary))", whiteSpace: "nowrap" }}>
-        W / L
-      </span>
+      {hasDelta && (
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-tertiary, var(--text-secondary))", whiteSpace: "nowrap" }}>
+          <span style={{ color: "#22c55e", fontWeight: 600 }}>
+            {winDelta > 0 ? `+${winDelta}` : winDelta}
+          </span>
+          {" / "}
+          <span style={{ color: "#ef4444", fontWeight: 600 }}>
+            {lossDelta}
+          </span>
+        </span>
+      )}
     </div>
   );
 }
@@ -135,10 +137,7 @@ export function PlayMenu() {
             margin: "0 0 24px",
           }}
         >
-          Online games count for ELO.
-          {playerElo != null && (
-            <> Your current ELO: <strong style={{ color: "var(--text-primary)" }}>{playerElo}</strong></>
-          )}
+          Online games count for ELO. AI games are for practice.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
