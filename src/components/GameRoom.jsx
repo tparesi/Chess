@@ -12,6 +12,7 @@ import { analyzeLastMove, inferMoveFromDiff } from "../chess/coach.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { usePreferences } from "../hooks/usePreferences.js";
 import { abandonGame, finalizePvpMatch, getGame, submitMove } from "../lib/games.js";
+import { getTournamentPairing, settleTournamentGame } from "../lib/tournament.js";
 import { supabase } from "../lib/supabase.js";
 import { classic } from "../themes/classic.jsx";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
@@ -44,6 +45,11 @@ export function GameRoom() {
   const prevBoardRef = useRef(null);
   const prev2BoardRef = useRef(null);
   const finalizedRef = useRef(false);
+  const timerExpiredRef = useRef(false);
+  const [tournamentPairing, setTournamentPairing] = useState(null);
+  const TOURNAMENT_SECS = 30 * 60; // 30 minutes per player
+  const [whiteSecs, setWhiteSecs] = useState(TOURNAMENT_SECS);
+  const [blackSecs, setBlackSecs] = useState(TOURNAMENT_SECS);
   const { prefs } = usePreferences();
   const coachEnabled = prefs.coachEnabled;
   const baseTheme = getTheme(DEFAULT_THEME_ID);
@@ -81,6 +87,61 @@ export function GameRoom() {
       .then(setGame)
       .catch((e) => setErr(e.message || String(e)));
   }, [gameId]);
+
+  // Check if this is a tournament game (enables timer)
+  useEffect(() => {
+    getTournamentPairing(gameId)
+      .then(setTournamentPairing)
+      .catch(() => {});
+  }, [gameId]);
+
+  // Tournament timer: tick down whichever player's clock is active
+  useEffect(() => {
+    if (!tournamentPairing || !game || game.status !== "active") return;
+    const id = setInterval(() => {
+      if (game.turn === "white") {
+        setWhiteSecs((s) => s - 1);
+      } else {
+        setBlackSecs((s) => s - 1);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [tournamentPairing, game?.status, game?.turn]);
+
+  // Timer expiry: compute material winner and submit result
+  useEffect(() => {
+    if (!tournamentPairing || timerExpiredRef.current) return;
+    const expired = game?.turn === "white" ? whiteSecs <= 0 : blackSecs <= 0;
+    if (!expired || !game || game.status !== "active" || !myColor) return;
+    timerExpiredRef.current = true;
+
+    // Count material (same 5-point threshold as stale game cleanup)
+    let whiteMat = 0, blackMat = 0;
+    const VAL = { Q: 9, R: 5, B: 3, N: 3, P: 1 };
+    for (const row of game.board) {
+      for (const p of row) {
+        if (!p) continue;
+        const v = VAL[p.toUpperCase()] ?? 0;
+        if (p === p.toUpperCase()) whiteMat += v;
+        else blackMat += v;
+      }
+    }
+    const loser = game.turn; // whose clock ran out
+    let winner;
+    if (loser === "white") {
+      winner = blackMat - whiteMat >= 5 ? "black" : whiteMat - blackMat >= 5 ? "white" : "draw";
+    } else {
+      winner = whiteMat - blackMat >= 5 ? "white" : blackMat - whiteMat >= 5 ? "black" : "draw";
+    }
+
+    submitMove(
+      gameId,
+      { board: game.board, enPassant: game.en_passant, castling: game.castling, prevHistory: game.move_history ?? [] },
+      `timeout-${loser}`,
+      { status: "finished", winner }
+    ).catch((e) => console.error("[timer expiry]", e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [whiteSecs, blackSecs]);
 
   // Realtime subscription
   useEffect(() => {
@@ -188,6 +249,7 @@ export function GameRoom() {
     if (!game || game.status !== "finished" || finalizedRef.current) return;
     finalizedRef.current = true;
     finalizePvpMatch(gameId).catch((e) => console.error("[finalize]", e));
+    settleTournamentGame(gameId).catch((e) => console.error("[settle tournament]", e));
     setOverlay({ winner: game.winner ?? "white" });
   }, [game, gameId]);
 
@@ -438,6 +500,14 @@ export function GameRoom() {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            {tournamentPairing && (
+              <ClockDisplay
+                secs={flipped ? whiteSecs : blackSecs}
+                active={game.status === "active" && game.turn === (flipped ? "white" : "black")}
+                label={opponentName}
+                sqWidth={`calc(${SQ} * 8)`}
+              />
+            )}
             <CapturedStrip
               name={opponentName}
               pieces={sortCapturedByValue(flipped ? captured.white : captured.black)}
@@ -467,6 +537,15 @@ export function GameRoom() {
               sqWidth={`calc(${SQ} * 8)`}
               self
             />
+            {tournamentPairing && (
+              <ClockDisplay
+                secs={flipped ? blackSecs : whiteSecs}
+                active={game.status === "active" && game.turn === (flipped ? "black" : "white")}
+                label="Your clock"
+                sqWidth={`calc(${SQ} * 8)`}
+                self
+              />
+            )}
 
             <div
               style={{
@@ -741,6 +820,37 @@ export function GameRoom() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ClockDisplay({ secs, active, label, sqWidth, self }) {
+  const mins = Math.floor(Math.max(secs, 0) / 60);
+  const s    = Math.max(secs, 0) % 60;
+  const low  = secs <= 60;
+  const fmt  = `${mins}:${String(s).padStart(2, "0")}`;
+  return (
+    <div style={{
+      width: sqWidth,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "6px 12px",
+      borderRadius: "var(--radius-sm)",
+      background: active ? (low ? "var(--error-tint)" : "var(--accent-tint)") : "var(--bg-sunk)",
+      border: `1px solid ${active ? (low ? "var(--error)" : "var(--accent)") : "var(--border)"}`,
+    }}>
+      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-tertiary)", fontWeight: 600 }}>
+        {label}
+      </span>
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontWeight: 700,
+        fontSize: "var(--text-sm)",
+        color: low && active ? "var(--error)" : active ? "var(--accent-hover)" : "var(--text-secondary)",
+      }}>
+        {fmt}
+      </span>
     </div>
   );
 }

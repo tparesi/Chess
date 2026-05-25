@@ -17,6 +17,8 @@ import { PlayMenu } from "./components/PlayMenu.jsx";
 import { PuzzleBookHome } from "./components/PuzzleBookHome.jsx";
 import { ChapterIntro } from "./components/ChapterIntro.jsx";
 import { PuzzleMode } from "./components/PuzzleMode.jsx";
+import { TournamentList } from "./components/TournamentList.jsx";
+import { TournamentRoom } from "./components/TournamentRoom.jsx";
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -123,6 +125,22 @@ export default function App() {
           element={
             <RequireAuth>
               <FeedbackForm />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/tournament"
+          element={
+            <RequireAuth>
+              <TournamentList />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/tournament/:id"
+          element={
+            <RequireAuth>
+              <TournamentRoom />
             </RequireAuth>
           }
         />
