@@ -121,7 +121,7 @@ export function aiMove(board, difficulty, enPassant, castling) {
   const moves = allLegalMoves(board, "black", enPassant, castling);
   if (!moves.length) return null;
 
-  if (difficulty === "easy") {
+  if (difficulty === "beginner") {
     const captures = moves.filter((m) => board[m.to[0]][m.to[1]]);
     if (captures.length && Math.random() < 0.35) {
       return captures[Math.floor(Math.random() * captures.length)];
@@ -129,7 +129,7 @@ export function aiMove(board, difficulty, enPassant, castling) {
     return moves[Math.floor(Math.random() * moves.length)];
   }
 
-  const depth = difficulty === "medium" ? 1 : difficulty === "hard" ? 2 : 3;
+  const depth = difficulty === "easy" ? 1 : difficulty === "medium" ? 2 : 3;
   let best = moves[0];
   let bestEval = Infinity;
   for (const m of moves) {

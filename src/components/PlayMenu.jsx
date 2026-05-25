@@ -1,4 +1,7 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth.js";
+import { useProfile } from "../hooks/useProfile.js";
+import { AI_ELO, applyResult } from "../lib/elo.js";
 import { SummitBadge } from "./SummitBadge.jsx";
 import {
   ghostBtnStyle,
@@ -7,47 +10,87 @@ import {
   menuLabelStyle,
 } from "./ui.js";
 
-const modes = [
+const AI_MODES = [
   {
-    id: "online",
-    label: "Online PvP",
-    desc: "Play live against a classmate — affects ELO",
-    icon: "🌐",
-    path: "/lobby",
-    accent: true,
+    id: "beginner",
+    label: "Beginner AI",
+    desc: "Mostly random — good for warming up",
+    icon: "🌱",
+    path: "/play/ai/beginner",
   },
   {
     id: "easy",
     label: "Easy AI",
-    desc: "Mostly random — good for warming up",
-    icon: "🌱",
+    desc: "Sees 1 move ahead — a solid first challenge",
+    icon: "🧠",
     path: "/play/ai/easy",
   },
   {
     id: "medium",
     label: "Medium AI",
-    desc: "Sees 1 move ahead — a solid first challenge",
-    icon: "🧠",
+    desc: "Sees 2 moves ahead — plays real tactics",
+    icon: "🔥",
     path: "/play/ai/medium",
   },
   {
     id: "hard",
     label: "Hard AI",
-    desc: "Sees 2 moves ahead — plays real tactics",
-    icon: "🔥",
-    path: "/play/ai/hard",
-  },
-  {
-    id: "expert",
-    label: "Expert AI",
     desc: "Sees 3 moves ahead — test your best",
     icon: "⚡",
-    path: "/play/ai/expert",
+    path: "/play/ai/hard",
   },
 ];
 
+function EloPreview({ playerElo, difficulty }) {
+  if (playerElo == null) return null;
+  const aiElo = AI_ELO[difficulty];
+  const { whiteDelta: winDelta } = applyResult(playerElo, aiElo, "white");
+  const { whiteDelta: lossDelta } = applyResult(playerElo, aiElo, "black");
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        gap: 2,
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+        <span style={{ color: "#22c55e", fontWeight: 600 }}>
+          {winDelta > 0 ? `+${winDelta}` : winDelta}
+        </span>
+        {" / "}
+        <span style={{ color: "#ef4444", fontWeight: 600 }}>
+          {lossDelta}
+        </span>
+      </span>
+      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-tertiary, var(--text-secondary))", whiteSpace: "nowrap" }}>
+        W / L
+      </span>
+    </div>
+  );
+}
+
 export function PlayMenu() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profile } = useProfile(user?.id);
+  const playerElo = profile?.elo ?? null;
+
+  const allModes = [
+    {
+      id: "online",
+      label: "Online PvP",
+      desc: "Play live against a classmate — affects ELO",
+      icon: "🌐",
+      path: "/lobby",
+      accent: true,
+    },
+    ...AI_MODES,
+  ];
+
   return (
     <div
       style={{
@@ -92,11 +135,14 @@ export function PlayMenu() {
             margin: "0 0 24px",
           }}
         >
-          Online games count for ELO. AI games are for practice.
+          Online games count for ELO.
+          {playerElo != null && (
+            <> Your current ELO: <strong style={{ color: "var(--text-primary)" }}>{playerElo}</strong></>
+          )}
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {modes.map((m, i) => (
+          {allModes.map((m, i) => (
             <button
               key={m.id}
               onClick={() => navigate(m.path)}
@@ -135,7 +181,7 @@ export function PlayMenu() {
                 <span style={menuLabelStyle}>{m.label}</span>
                 <span style={menuDescStyle}>{m.desc}</span>
               </div>
-              {m.accent && (
+              {m.accent ? (
                 <span
                   style={{
                     color: "var(--primary)",
@@ -145,6 +191,8 @@ export function PlayMenu() {
                 >
                   →
                 </span>
+              ) : (
+                <EloPreview playerElo={playerElo} difficulty={m.id} />
               )}
             </button>
           ))}

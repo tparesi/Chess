@@ -33,7 +33,7 @@ import { btnStyle, cardStyle, ghostBtnStyle, sortCapturedByValue } from "./ui.js
 const initialCastling = () => ({ ...INITIAL_CASTLING });
 
 export function AIGame() {
-  const { difficulty = "medium" } = useParams();
+  const { difficulty = "easy" } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useProfile(user?.id);
@@ -289,7 +289,7 @@ export function AIGame() {
         execMove(move.from[0], move.from[1], move.to[0], move.to[1], promo);
       }
       setAiThinking(false);
-    }, difficulty === "expert" ? 200 : 500);
+    }, difficulty === "hard" ? 200 : 500);
     return () => {
       clearTimeout(timer);
       setAiThinking(false);

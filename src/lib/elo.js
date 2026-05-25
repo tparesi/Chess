@@ -14,7 +14,7 @@ export function newRating(rating, expected, actual, k = K_FACTOR) {
 }
 
 // Fixed ELO ratings used as AI opponents for ELO calculation.
-export const AI_ELO = { easy: 600, medium: 1000, hard: 1200, expert: 1400 };
+export const AI_ELO = { beginner: 600, easy: 1000, medium: 1200, hard: 1400 };
 
 // Convenience: given both ratings and a result ("white"|"black"|"draw"),
 // return the new ratings.

@@ -122,7 +122,7 @@ export async function recordAiMatch({ userId, result, difficulty, moves }) {
     .single();
   if (pErr) throw pErr;
 
-  const aiElo = AI_ELO[difficulty] ?? AI_ELO.medium;
+  const aiElo = AI_ELO[difficulty] ?? AI_ELO.easy;
   // Player is always white in AI games; AI is black.
   // Draws don't affect ELO — a draw against a weaker AI shouldn't penalize the player.
   const { whiteElo: newElo, whiteDelta } =
