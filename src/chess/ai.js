@@ -129,7 +129,7 @@ export function aiMove(board, difficulty, enPassant, castling) {
     return moves[Math.floor(Math.random() * moves.length)];
   }
 
-  const depth = difficulty === "medium" ? 2 : 3;
+  const depth = difficulty === "medium" ? 1 : difficulty === "hard" ? 2 : 3;
   let best = moves[0];
   let bestEval = Infinity;
   for (const m of moves) {

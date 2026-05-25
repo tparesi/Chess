@@ -19,23 +19,30 @@ const modes = [
   {
     id: "easy",
     label: "Easy AI",
-    desc: "Mostly random — warm up",
+    desc: "Mostly random — good for warming up",
     icon: "🌱",
     path: "/play/ai/easy",
   },
   {
     id: "medium",
     label: "Medium AI",
-    desc: "Thinks 2 moves ahead",
+    desc: "Sees 1 move ahead — a solid first challenge",
     icon: "🧠",
     path: "/play/ai/medium",
   },
   {
     id: "hard",
     label: "Hard AI",
-    desc: "Thinks 3 moves ahead",
+    desc: "Sees 2 moves ahead — plays real tactics",
     icon: "🔥",
     path: "/play/ai/hard",
+  },
+  {
+    id: "expert",
+    label: "Expert AI",
+    desc: "Sees 3 moves ahead — test your best",
+    icon: "⚡",
+    path: "/play/ai/expert",
   },
 ];
 

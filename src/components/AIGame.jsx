@@ -289,7 +289,7 @@ export function AIGame() {
         execMove(move.from[0], move.from[1], move.to[0], move.to[1], promo);
       }
       setAiThinking(false);
-    }, difficulty === "hard" ? 200 : 500);
+    }, difficulty === "expert" ? 200 : 500);
     return () => {
       clearTimeout(timer);
       setAiThinking(false);
