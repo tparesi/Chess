@@ -1,18 +1,6 @@
--- ─── cleanup_stale_games (updated) ───────────────────────────────────────────
--- Changes from original:
---   - Close games (gap < 5 pts) are left alone instead of abandoned.
---   - Games where the *winner* is the one who hasn't moved are left alone;
---     we only end a game when the *losing* side is the one holding it up.
---
--- Full rules:
---   waiting games                                      → abandoned (no ELO)
---   active, < 10 moves                                 → abandoned (no ELO)
---   active, 10+ moves, gap < 5 pts                     → skipped (too close)
---   active, 10+ moves, gap ≥ 5 pts, winner's turn      → skipped (winner is stalling)
---   active, 10+ moves, gap ≥ 5 pts, loser's turn       → finished + ELO awarded
---
--- Piece values: Q/q=9, R/r=5, B/b=3, N/n=3, P/p=1
--- Run weekly via GitHub Actions (service_role only).
+-- Fix ambiguous "game_id" reference reintroduced in 000003.
+-- Inside cleanup_stale_games, the output column "game_id" and matches.game_id
+-- are both in scope; qualify the table column to resolve it.
 
 create or replace function cleanup_stale_games(p_stale_days int default 7)
 returns table(
@@ -167,6 +155,6 @@ begin
 end;
 $$;
 
--- Restrict to service_role — called weekly by GitHub Actions
 revoke all on function cleanup_stale_games(int) from public;
 revoke all on function cleanup_stale_games(int) from authenticated;
+grant execute on function cleanup_stale_games(int) to service_role;
