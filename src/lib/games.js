@@ -124,7 +124,11 @@ export async function recordAiMatch({ userId, result, difficulty, moves }) {
 
   const aiElo = AI_ELO[difficulty] ?? AI_ELO.medium;
   // Player is always white in AI games; AI is black.
-  const { whiteElo: newElo, whiteDelta } = applyResult(profile.elo, aiElo, result);
+  // Draws don't affect ELO — a draw against a weaker AI shouldn't penalize the player.
+  const { whiteElo: newElo, whiteDelta } =
+    result === "draw"
+      ? { whiteElo: profile.elo, whiteDelta: 0 }
+      : applyResult(profile.elo, aiElo, result);
 
   const { error: uErr } = await supabase
     .from("profiles")

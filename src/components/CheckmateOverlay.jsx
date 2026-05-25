@@ -10,6 +10,7 @@ export function CheckmateOverlay({
   onReplay,
   onMenu,
 }) {
+  const isDraw = winner === "draw";
   return (
     <div
       style={{
@@ -58,7 +59,7 @@ export function CheckmateOverlay({
           }}
         >
           <div style={{ display: "inline-flex", position: "relative" }}>
-            {theme.renderPiece(winner === "white" ? "K" : "k", { size: "52px" })}
+            {theme.renderPiece(isDraw ? "P" : winner === "white" ? "K" : "k", { size: "52px" })}
           </div>
         </div>
 
@@ -74,9 +75,9 @@ export function CheckmateOverlay({
             animation: "fadeSlideUp 0.5s var(--ease) 0.3s both",
           }}
         >
-          {winnerName ? `${winnerName} wins!` : `${theme.sideNames[winner]} wins!`}
+          {isDraw ? "It's a draw!" : winnerName ? `${winnerName} wins!` : `${theme.sideNames[winner]} wins!`}
         </h2>
-        {loserName && (
+        {!isDraw && loserName && (
           <p
             style={{
               fontFamily: "var(--font-display)",
@@ -109,8 +110,8 @@ export function CheckmateOverlay({
           </div>
         )}
 
-        {/* Confetti */}
-        <div
+        {/* Confetti — only on decisive results */}
+        {!isDraw && <div
           style={{
             position: "fixed",
             inset: 0,
@@ -141,7 +142,7 @@ export function CheckmateOverlay({
               }}
             />
           ))}
-        </div>
+        </div>}
 
         <div
           style={{

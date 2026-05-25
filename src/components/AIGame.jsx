@@ -310,13 +310,13 @@ export function AIGame() {
         difficulty,
         moves: history,
       })
-        .then((delta) => setOverlay({ winner: winner ?? "white", eloDelta: delta }))
+        .then((delta) => setOverlay({ winner: winner ?? "draw", eloDelta: delta }))
         .catch((e) => {
           console.error("[recordAiMatch]", e);
-          setOverlay({ winner: winner ?? "white" });
+          setOverlay({ winner: winner ?? "draw" });
         });
     } else {
-      const t = setTimeout(() => setOverlay({ winner: winner ?? "white" }), 800);
+      const t = setTimeout(() => setOverlay({ winner: winner ?? "draw" }), 800);
       return () => clearTimeout(t);
     }
   }, [gameStatus, turn, history, user, difficulty]);
@@ -561,8 +561,8 @@ export function AIGame() {
       {overlay && (
         <CheckmateOverlay
           winner={overlay.winner}
-          winnerName={overlay.winner === "white" ? playerName : aiName}
-          loserName={overlay.winner === "white" ? aiName : playerName}
+          winnerName={overlay.winner === "white" ? playerName : overlay.winner === "black" ? aiName : null}
+          loserName={overlay.winner === "white" ? aiName : overlay.winner === "black" ? playerName : null}
           theme={theme}
           eloDelta={overlay.eloDelta}
           onReplay={reset}
