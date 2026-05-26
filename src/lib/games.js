@@ -111,6 +111,53 @@ export async function finalizePvpMatch(gameId) {
   if (error) throw error;
 }
 
+// Create a new AI game row so the stale-game cleanup can track it server-side.
+// Returns the new game's ID.
+export async function createAiGame(userId, difficulty) {
+  const { data, error } = await supabase
+    .from("games")
+    .insert({
+      white_id: userId,
+      board: INIT,
+      turn: "white",
+      castling: INITIAL_CASTLING,
+      status: "active",
+      ai_difficulty: difficulty,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+// Persist the current board state for an AI game after each move.
+export async function updateAiGameState(gameId, { board, turn, enPassant, castling, moveHistory }) {
+  const { error } = await supabase
+    .from("games")
+    .update({
+      board,
+      turn,
+      en_passant: enPassant ?? null,
+      castling,
+      move_history: moveHistory,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", gameId);
+  if (error) throw error;
+}
+
+// Finalize an AI game (win/loss/draw/forfeit). Calls the finalize_ai_game RPC
+// which marks the game finished, records the match, and applies ELO atomically.
+// Returns the player's ELO delta.
+export async function finalizeAiGame(gameId, result) {
+  const { data, error } = await supabase.rpc("finalize_ai_game", {
+    p_game_id: gameId,
+    p_winner: result,
+  });
+  if (error) throw error;
+  return data; // int: ELO delta
+}
+
 // Record an AI match result. Applies K=32 ELO vs the difficulty's fixed rating,
 // updates win/loss/draw counters, and stores ELO before/after in the match row.
 // Returns the player's ELO delta so the caller can show it in the overlay.
@@ -177,6 +224,7 @@ export async function listLobbyGames() {
       .from("games")
       .select(select)
       .eq("status", "active")
+      .is("ai_difficulty", null)
       .order("updated_at", { ascending: false })
       .limit(20),
   ]);

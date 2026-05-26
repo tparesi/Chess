@@ -17,7 +17,7 @@ import { analyzeCurrentPosition, analyzeLastMove } from "../chess/coach.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { usePreferences } from "../hooks/usePreferences.js";
 import { useProfile } from "../hooks/useProfile.js";
-import { recordAiMatch } from "../lib/games.js";
+import { createAiGame, updateAiGameState, finalizeAiGame } from "../lib/games.js";
 import { classic } from "../themes/classic.jsx";
 import { getTheme, DEFAULT_THEME_ID } from "../themes/index.js";
 import { CheckmateOverlay } from "./CheckmateOverlay.jsx";
@@ -28,7 +28,7 @@ import { PieceLegend } from "./PieceLegend.jsx";
 import { PromotionDialog } from "./PromotionDialog.jsx";
 import { CapturedStrip } from "./CapturedStrip.jsx";
 import { SummitBadge } from "./SummitBadge.jsx";
-import { btnStyle, cardStyle, ghostBtnStyle, sortCapturedByValue } from "./ui.js";
+import { btnStyle, cardStyle, ghostBtnStyle, primaryBtnStyle, sortCapturedByValue } from "./ui.js";
 
 const initialCastling = () => ({ ...INITIAL_CASTLING });
 
@@ -54,6 +54,8 @@ export function AIGame() {
   const [captureAnim, setCaptureAnim] = useState(null);
   const [aiThinking, setAiThinking] = useState(false);
   const [overlay, setOverlay] = useState(null);
+  const [confirmForfeit, setConfirmForfeit] = useState(false);
+  const [gameId, setGameId] = useState(null);
   const [latestTip, setLatestTip] = useState(null);
   const recentTipIdsRef = useRef([]);
   const movesScrollRef = useRef(null);
@@ -69,6 +71,24 @@ export function AIGame() {
       movesScrollRef.current.scrollTop = movesScrollRef.current.scrollHeight;
     }
   }, [history]);
+
+  // Create a server-side game row so the stale-game cleanup can track this game.
+  useEffect(() => {
+    if (!user) return;
+    createAiGame(user.id, difficulty)
+      .then(setGameId)
+      .catch((e) => console.error("[createAiGame]", e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync board state to the server after each move so the stale cleanup has
+  // an accurate position if the player closes the browser.
+  useEffect(() => {
+    if (!gameId || !user || history.length === 0 || gameStatus) return;
+    updateAiGameState(gameId, { board, turn, enPassant, castling, moveHistory: history })
+      .catch((e) => console.error("[updateAiGameState]", e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId, history.length]);
 
   const reset = useCallback(() => {
     setBoard(cloneBoard(INIT));
@@ -88,6 +108,21 @@ export function AIGame() {
     setLatestTip(null);
     recentTipIdsRef.current = [];
   }, []);
+
+  const handleForfeit = useCallback(async () => {
+    setConfirmForfeit(false);
+    if (user && gameId) {
+      try {
+        const delta = await finalizeAiGame(gameId, "black");
+        setOverlay({ winner: "black", eloDelta: delta });
+      } catch (e) {
+        console.error("[forfeit]", e);
+        setOverlay({ winner: "black" });
+      }
+    } else {
+      setOverlay({ winner: "black" });
+    }
+  }, [user, gameId]);
 
   const execMove = useCallback(
     (sr, sc, tr, tc, promo) => {
@@ -303,23 +338,18 @@ export function AIGame() {
       gameStatus === "checkmate" ? (turn === "white" ? "black" : "white") : null;
     const result = winner ?? "draw";
 
-    if (user) {
-      recordAiMatch({
-        userId: user.id,
-        result,
-        difficulty,
-        moves: history,
-      })
+    if (user && gameId) {
+      finalizeAiGame(gameId, result)
         .then((delta) => setOverlay({ winner: winner ?? "draw", eloDelta: delta }))
         .catch((e) => {
-          console.error("[recordAiMatch]", e);
+          console.error("[finalizeAiGame]", e);
           setOverlay({ winner: winner ?? "draw" });
         });
     } else {
       const t = setTimeout(() => setOverlay({ winner: winner ?? "draw" }), 800);
       return () => clearTimeout(t);
     }
-  }, [gameStatus, turn, history, user, difficulty]);
+  }, [gameStatus, turn, history, user, gameId]);
 
   const statusText = useMemo(() => {
     if (gameStatus === "checkmate") {
@@ -386,9 +416,18 @@ export function AIGame() {
                 }
               />
             )}
-            <button onClick={reset} style={ghostBtnStyle}>
-              Restart
-            </button>
+            {history.length < 10 ? (
+              <button onClick={reset} style={ghostBtnStyle}>
+                Restart
+              </button>
+            ) : (
+              <button
+                onClick={() => setConfirmForfeit(true)}
+                style={{ ...ghostBtnStyle, color: "var(--error)" }}
+              >
+                Forfeit
+              </button>
+            )}
             <button onClick={() => navigate("/menu")} style={btnStyle}>
               Menu
             </button>
@@ -557,6 +596,84 @@ export function AIGame() {
 
       {pendingPromo && (
         <PromotionDialog theme={theme} turn={turn} onPick={handlePromo} />
+      )}
+      {confirmForfeit && !overlay && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-overlay)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 150,
+            animation: "fadeIn 0.25s var(--ease)",
+          }}
+          onClick={() => setConfirmForfeit(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--bg-raised)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-md)",
+              padding: "28px 32px 24px",
+              maxWidth: 380,
+              width: "88%",
+              textAlign: "center",
+              boxShadow: "var(--shadow-lg)",
+              animation: "summitDrop 0.5s var(--ease-overshoot) both",
+            }}
+          >
+            <div style={{ fontSize: 44, marginBottom: 10 }}>🏳️</div>
+            <h3
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "var(--text-md)",
+                fontWeight: 700,
+                color: "var(--text-primary)",
+                margin: "0 0 8px",
+                letterSpacing: "-0.01em",
+                fontVariationSettings: '"SOFT" 30, "opsz" 144',
+              }}
+            >
+              Forfeit this game?
+            </h3>
+            <p
+              style={{
+                fontSize: "var(--text-sm)",
+                color: "var(--text-secondary)",
+                margin: "0 0 20px",
+                lineHeight: 1.55,
+              }}
+            >
+              This counts as a{" "}
+              <strong style={{ color: "var(--error)" }}>loss</strong> and will{" "}
+              <strong style={{ color: "var(--error)" }}>lower your ELO</strong>. The AI
+              will be declared the winner.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={() => setConfirmForfeit(false)}
+                style={{ ...btnStyle, padding: "10px 22px" }}
+              >
+                Keep playing
+              </button>
+              <button
+                onClick={handleForfeit}
+                style={{
+                  ...primaryBtnStyle,
+                  background: "var(--error)",
+                  border: "1px solid var(--error)",
+                  padding: "10px 22px",
+                }}
+              >
+                Yes, forfeit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {overlay && (
         <CheckmateOverlay
